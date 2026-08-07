@@ -1,6 +1,8 @@
 from functools import lru_cache
+from typing import Annotated
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -25,7 +27,17 @@ class Settings(BaseSettings):
     STRIPE_CURRENCY: str = "usd"
 
     FRONTEND_URL: str = "http://localhost:3000"
-    CORS_ORIGINS: list[str] = []
+    CORS_ORIGINS: Annotated[list[str], NoDecode] = []
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, v):
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return []
+            return [o.strip() for o in v.split(",")]
+        return v
 
     @property
     def resolved_cors_origins(self) -> list[str]:
