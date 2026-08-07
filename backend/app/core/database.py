@@ -10,7 +10,11 @@ from app.core.config import settings
 def _async_database_url() -> str:
     url = make_url(settings.DATABASE_URL)
     if url.drivername in {"postgres", "postgresql"}:
-        return url.set(drivername="postgresql+asyncpg").render_as_string(hide_password=False)
+        url = url.set(drivername="postgresql+asyncpg")
+        query = dict(url.query)
+        if "sslmode" in query:
+            query["ssl"] = query.pop("sslmode")
+        return url.set(query=query).render_as_string(hide_password=False)
     return settings.DATABASE_URL
 
 
