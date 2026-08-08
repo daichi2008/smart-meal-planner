@@ -24,9 +24,31 @@ services:
         value: llama-3.3-70b-versatile
       - key: FRONTEND_URL
         sync: false
-      - key: STRIPE_SECRET_KEY
+      # AdvCash Configuration
+      - key: ADVCASH_ACCOUNT_EMAIL
         sync: false
-      - key: STRIPE_WEBHOOK_SECRET
+      - key: ADVCASH_SCI_NAME
         sync: false
-      - key: STRIPE_PRICE_PRO
+      - key: ADVCASH_SCI_PASSWORD
         sync: false
+      - key: ADVCASH_CURRENCY
+        value: USD
+      - key: ADVCASH_PLAN_PRICE_USD
+        value: 6.0
+      - key: ADVCASH_SUBSCRIPTION_DAYS
+        value: 30
+      # Volet Payment Gateway Configuration
+      - key: VOLET_MERCHANT_ID
+        sync: false
+      - key: VOLET_API_KEY
+        sync: false
+      - key: VOLET_SECRET_KEY
+        sync: false
+      - key: VOLET_WEEKLY_PRICE_USD
+        value: 2.0
+      - key: VOLET_MONTHLY_PRICE_USD
+        value: 7.0
+      - key: VOLET_WEEKLY_SUBSCRIPTION_DAYS
+        value: 7
+      - key: VOLET_MONTHLY_SUBSCRIPTION_DAYS
+        value: 30
