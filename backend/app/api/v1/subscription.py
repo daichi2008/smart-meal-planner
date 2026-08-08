@@ -1,19 +1,26 @@
-from typing import Annotated
+import logging
+from datetime import datetime, timedelta
+from typing import Annotated, Optional
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.subscription import Subscription, SubscriptionStatus
-from app.models.user import Plan
+from app.models.user import Plan, User
 from app.schemas.subscription import (
     CheckoutResponse,
     PlanOut,
     SubscriptionOut,
 )
-from app.services import stripe_service
+from app.services import advcash_service, volet_service
+from app.services.subscription_service import maybe_expire_subscription
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/subscription", tags=["subscription"])
 
@@ -34,14 +41,26 @@ async def list_plans() -> list[PlanOut]:
             ],
         ),
         PlanOut(
+            id="weekly",
+            name="Weekly",
+            price_cents=int(round(settings.VOLET_WEEKLY_PRICE_USD * 100)),
+            features=[
+                "Unlimited fridge items",
+                "20 AI recipe suggestions / day",
+                "Meal-type filtering",
+                "Nutrition breakdown",
+            ],
+        ),
+        PlanOut(
             id="pro",
-            name="Pro",
-            price_cents=600,
+            name="Monthly Pro",
+            price_cents=int(round(settings.VOLET_MONTHLY_PRICE_USD * 100)),
             features=[
                 "Unlimited fridge items",
                 "Unlimited AI recipes",
                 "Meal-type filtering (breakfast/lunch/dinner)",
                 "Priority generation & full nutrition breakdown",
+                "Custom meal preferences",
             ],
         ),
     ]
@@ -49,8 +68,7 @@ async def list_plans() -> list[PlanOut]:
 
 @router.get("/me", response_model=SubscriptionOut)
 async def get_my_subscription(current_user: CurrentUser, db: Db) -> SubscriptionOut:
-    from sqlalchemy import select
-
+    await maybe_expire_subscription(db, current_user)
     result = await db.execute(
         select(Subscription)
         .where(Subscription.user_id == current_user.id)
@@ -67,128 +85,186 @@ async def get_my_subscription(current_user: CurrentUser, db: Db) -> Subscription
 
 
 @router.post("/checkout", response_model=CheckoutResponse)
-async def create_checkout(current_user: CurrentUser) -> CheckoutResponse:
-    try:
-        url = await stripe_service.create_checkout_session(
-            current_user,
-            success_url=f"{settings.FRONTEND_URL}/dashboard?upgraded=1",
-            cancel_url=f"{settings.FRONTEND_URL}/pricing",
+async def create_checkout(
+    current_user: CurrentUser,
+    plan_id: str = Query(...),
+    provider: str = Query(default="volet", description="Payment provider: volet or advcash"),
+    db: Db = Depends(get_db),
+) -> CheckoutResponse:
+    """Create a checkout session for the specified plan and payment provider."""
+    if plan_id not in {"weekly", "pro"}:
+        raise HTTPException(status_code=400, detail="Invalid plan_id")
+    
+    if provider not in {"volet", "advcash"}:
+        raise HTTPException(status_code=400, detail="Invalid provider")
+    
+    order_id = f"smp-{uuid4().hex}"
+    db.add(
+        Subscription(
+            user_id=current_user.id,
+            provider_order_id=order_id,
+            status=SubscriptionStatus.INCOMPLETE,
         )
-    except stripe_service.StripeNotConfigured as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    return CheckoutResponse(url=url)
-
-
-@router.post("/portal", response_model=CheckoutResponse)
-async def billing_portal(current_user: CurrentUser) -> CheckoutResponse:
+    )
+    await db.commit()
+    
     try:
-        url = await stripe_service.create_portal_session(
-            current_user,
-            return_url=f"{settings.FRONTEND_URL}/dashboard",
-        )
-    except stripe_service.StripeNotConfigured as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    return CheckoutResponse(url=url)
-
-
-@router.post("/webhook")
-async def stripe_webhook(request: Request, db: Db) -> dict:
-    payload = await request.body()
-    sig_header = request.headers.get("stripe-signature", "")
-    try:
-        event = stripe_service.construct_webhook_event(payload, sig_header)
-    except (stripe_service.StripeNotConfigured, ValueError) as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    from sqlalchemy import select
-
-    event_type = event["type"]
-    data = event.get("data", {}).get("object", {})
-
-    if event_type in {"checkout.session.completed", "customer.subscription.created"}:
-        user_id = data.get("metadata", {}).get("user_id") or data.get("client_reference_id")
-        if user_id:
-            await _sync_subscription(db, user_id, data.get("subscription"))
-
-    elif event_type == "customer.subscription.updated":
-        sub_id = data.get("id")
-        if sub_id:
-            await _sync_subscription(db, None, sub_id)
-
-    elif event_type == "customer.subscription.deleted":
-        sub_id = data.get("id")
-        if sub_id:
-            result = await db.execute(
-                select(Subscription).where(Subscription.stripe_subscription_id == sub_id)
+        if provider == "volet":
+            amount = (
+                settings.VOLET_WEEKLY_PRICE_USD
+                if plan_id == "weekly"
+                else settings.VOLET_MONTHLY_PRICE_USD
             )
-            sub = result.scalar_one_or_none()
-            if sub:
-                sub.status = SubscriptionStatus.CANCELED
-                from app.models.user import User
-
-                result2 = await db.execute(select(User).where(User.id == sub.user_id))
-                user = result2.scalar_one_or_none()
-                if user:
-                    user.plan = Plan.FREE
-                await db.commit()
-
-    return {"received": True}
+            fields = volet_service.build_checkout_fields(order_id, amount, plan_id)
+            return CheckoutResponse(action_url=volet_service.VOLET_SCI_URL, fields=fields)
+        else:  # advcash
+            fields = advcash_service.build_checkout_fields(order_id)
+            return CheckoutResponse(action_url=advcash_service.SCI_URL, fields=fields)
+    except (volet_service.VoletNotConfigured, advcash_service.AdvCashNotConfigured) as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
-async def _sync_subscription(db: AsyncSession, user_id: str | None, stripe_sub_id: str | None) -> None:
-    from sqlalchemy import select
+@router.post("/status")
+async def advcash_status_callback(request: Request, db: Db) -> Response:
+    """Server-to-server IPN from AdvCash (ac_status_url)."""
+    form = dict(await request.form())
+    logger.info(
+        "AdvCash IPN received: %s",
+        {k: v for k, v in form.items() if k not in {"ac_hash"}},
+    )
 
-    if not stripe_sub_id:
-        return
-    try:
-        stripe_sub = stripe_service.stripe.Subscription.retrieve(stripe_sub_id)
-    except Exception:
-        return
+    if not advcash_service.verify_status_payload(form):
+        return Response(content="verification failed", status_code=status.HTTP_400_BAD_REQUEST)
 
-    if not user_id:
-        result = await db.execute(
-            select(Subscription).where(Subscription.stripe_subscription_id == stripe_sub_id)
-        )
-        existing = result.scalar_one_or_none()
-        if not existing:
-            return
-        user_id = existing.user_id
-
-    status_map = {
-        "trialing": SubscriptionStatus.TRIALING,
-        "active": SubscriptionStatus.ACTIVE,
-        "past_due": SubscriptionStatus.PAST_DUE,
-        "canceled": SubscriptionStatus.CANCELED,
-        "incomplete": SubscriptionStatus.INCOMPLETE,
-    }
-    from datetime import datetime
-
-    from app.models.user import User
+    order_id = form.get("ac_order_id")
+    if not order_id:
+        return Response(content="missing order id", status_code=status.HTTP_400_BAD_REQUEST)
 
     result = await db.execute(
-        select(Subscription).where(Subscription.stripe_subscription_id == stripe_sub_id)
+        select(Subscription).where(Subscription.provider_order_id == order_id)
     )
     sub = result.scalar_one_or_none()
     if not sub:
-        sub = Subscription(
-            user_id=user_id,
-            stripe_subscription_id=stripe_sub_id,
-            stripe_price_id=stripe_sub.get("items", {}).get("data", [{}])[0].get("price", {}).get("id"),
-            status=status_map.get(stripe_sub.get("status"), SubscriptionStatus.ACTIVE),
-        )
-        db.add(sub)
-    else:
-        sub.status = status_map.get(stripe_sub.get("status"), sub.status)
-        sub.cancel_at_period_end = bool(stripe_sub.get("cancel_at_period_end"))
+        return Response(content="unknown order", status_code=status.HTTP_404_NOT_FOUND)
 
-    period_end = stripe_sub.get("current_period_end")
-    if period_end:
-        sub.current_period_end = datetime.fromtimestamp(period_end)
+    ac_status = str(form.get("ac_status") or "").upper()
+    if ac_status == "SUCCESS":
+        await _activate_subscription(db, sub, form)
+    elif ac_status in {"FAIL", "CANCELED"}:
+        sub.status = SubscriptionStatus.CANCELED
+        await db.commit()
 
-    active = sub.status in {SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING}
-    result2 = await db.execute(select(User).where(User.id == user_id))
-    user = result2.scalar_one_or_none()
+    return Response(content="OK", media_type="text/plain")
+
+
+async def _activate_subscription(
+    db: AsyncSession, sub: Subscription, form: dict
+) -> None:
+    transfer_id = str(form.get("ac_transfer") or "")
+    if sub.status == SubscriptionStatus.ACTIVE and sub.provider_transfer_id == transfer_id:
+        return  # duplicate notification
+
+    try:
+        paid = float(form.get("ac_amount"))
+    except (TypeError, ValueError):
+        paid = 0.0
+    if paid < settings.ADVCASH_PLAN_PRICE_USD - 0.01:
+        logger.warning("AdvCash payment amount too low: %s", paid)
+        return
+
+    sub.provider_transfer_id = transfer_id
+    sub.amount_usd = paid
+    sub.status = SubscriptionStatus.ACTIVE
+    sub.cancel_at_period_end = False
+    sub.current_period_end = datetime.utcnow() + timedelta(days=settings.ADVCASH_SUBSCRIPTION_DAYS)
+
+    result = await db.execute(select(User).where(User.id == sub.user_id))
+    user = result.scalar_one_or_none()
     if user:
-        user.plan = Plan.PRO if active else Plan.FREE
+        user.plan = Plan.PRO
 
     await db.commit()
+    logger.info("Activated Pro subscription for user %s (order %s)", sub.user_id, sub.provider_order_id)
+
+
+@router.post("/volet/webhook")
+async def volet_webhook(request: Request, db: Db) -> Response:
+    """Webhook from Volet payment gateway."""
+    form = dict(await request.form())
+    logger.info(
+        "Volet webhook received: %s",
+        {k: v for k, v in form.items() if k not in {"signature"}},
+    )
+
+    if not volet_service.verify_webhook_payload(form):
+        return Response(content="signature verification failed", status_code=status.HTTP_400_BAD_REQUEST)
+
+    order_id = form.get("order_id")
+    if not order_id:
+        return Response(content="missing order_id", status_code=status.HTTP_400_BAD_REQUEST)
+
+    result = await db.execute(
+        select(Subscription).where(Subscription.provider_order_id == order_id)
+    )
+    sub = result.scalar_one_or_none()
+    if not sub:
+        return Response(content="unknown order", status_code=status.HTTP_404_NOT_FOUND)
+
+    volet_status = str(form.get("status", "")).lower()
+    if volet_status == "completed":
+        await _activate_volet_subscription(db, sub, form)
+    elif volet_status in {"failed", "cancelled"}:
+        sub.status = SubscriptionStatus.CANCELED
+        await db.commit()
+
+    return Response(content="OK", media_type="text/plain")
+
+
+async def _activate_volet_subscription(
+    db: AsyncSession, sub: Subscription, form: dict
+) -> None:
+    """Activate subscription after successful Volet payment."""
+    transaction_id = str(form.get("transaction_id", ""))
+    plan_id = str(form.get("plan_id", "pro"))
+    
+    if sub.status == SubscriptionStatus.ACTIVE and sub.provider_transfer_id == transaction_id:
+        return  # duplicate notification
+
+    try:
+        paid = float(form.get("amount", 0))
+    except (TypeError, ValueError):
+        paid = 0.0
+
+    # Determine subscription plan and duration
+    if plan_id == "weekly":
+        min_amount = settings.VOLET_WEEKLY_PRICE_USD - 0.01
+        subscription_days = settings.VOLET_WEEKLY_SUBSCRIPTION_DAYS
+        user_plan = Plan.WEEKLY
+    else:  # monthly/pro
+        min_amount = settings.VOLET_MONTHLY_PRICE_USD - 0.01
+        subscription_days = settings.VOLET_MONTHLY_SUBSCRIPTION_DAYS
+        user_plan = Plan.PRO
+
+    if paid < min_amount:
+        logger.warning("Volet payment amount too low: %s for plan %s", paid, plan_id)
+        return
+
+    sub.provider_transfer_id = transaction_id
+    sub.amount_usd = paid
+    sub.status = SubscriptionStatus.ACTIVE
+    sub.cancel_at_period_end = False
+    sub.current_period_end = datetime.utcnow() + timedelta(days=subscription_days)
+
+    result = await db.execute(select(User).where(User.id == sub.user_id))
+    user = result.scalar_one_or_none()
+    if user:
+        user.plan = user_plan
+
+    await db.commit()
+    logger.info(
+        "Activated %s subscription for user %s (order %s, payment provider: volet)",
+        plan_id,
+        sub.user_id,
+        sub.provider_order_id,
+    )
+

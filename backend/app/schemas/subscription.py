@@ -12,7 +12,8 @@ class PlanOut(BaseModel):
 
 
 class CheckoutResponse(BaseModel):
-    url: str
+    action_url: str
+    fields: dict[str, str]
 
 
 class SubscriptionOut(BaseModel):

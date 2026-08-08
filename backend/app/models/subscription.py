@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import uuid4
 
-from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, String
+from sqlalchemy import DateTime, Enum as SAEnum, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -23,12 +23,15 @@ class Subscription(Base):
     user_id: Mapped[str] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
     )
-    stripe_subscription_id: Mapped[str] = mapped_column(
-        String(120), unique=True, index=True, nullable=False
+    provider_order_id: Mapped[str] = mapped_column(
+        String(80), unique=True, index=True, nullable=False
     )
-    stripe_price_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    provider_transfer_id: Mapped[str | None] = mapped_column(
+        String(80), unique=True, index=True, nullable=True
+    )
+    amount_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
     status: Mapped[SubscriptionStatus] = mapped_column(
-        SAEnum(SubscriptionStatus), default=SubscriptionStatus.ACTIVE, nullable=False
+        SAEnum(SubscriptionStatus), default=SubscriptionStatus.INCOMPLETE, nullable=False
     )
     current_period_end: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     cancel_at_period_end: Mapped[bool] = mapped_column(default=False, nullable=False)

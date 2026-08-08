@@ -10,6 +10,7 @@ from app.core.database import Base
 
 class Plan(str, Enum):
     FREE = "free"
+    WEEKLY = "weekly"
     PRO = "pro"
 
 
@@ -23,7 +24,6 @@ class User(Base):
     plan: Mapped[Plan] = mapped_column(SAEnum(Plan), default=Plan.FREE, nullable=False)
     calorie_target: Mapped[float | None] = mapped_column(Float, nullable=True)
     dietary_preferences: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    stripe_customer_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 

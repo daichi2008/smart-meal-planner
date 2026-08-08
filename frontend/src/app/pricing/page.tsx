@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
@@ -15,37 +15,83 @@ interface Plan {
   features: string[]
 }
 
+interface PaymentProvider {
+  id: string
+  name: string
+  badge?: string
+}
+
 export default function PricingPage() {
   const { user } = useAuth()
   const { t } = useI18n()
-  const [plans] = useState<Plan[]>(() => [
-    {
-      id: "free",
-      name: t('planFreeName'),
-      price_cents: 0,
-      features: [t('featFree1'), t('featFree2'), t('featFree3')],
-    },
-    {
-      id: "pro",
-      name: t('planProName'),
-      price_cents: 600,
-      features: [t('featPro1'), t('featPro2'), t('featPro3'), t('featPro4')],
-    },
-  ])
+  const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [selectedProvider, setSelectedProvider] = useState<string>("volet")
+  const [plansLoading, setPlansLoading] = useState(true)
+
+  const paymentProviders: PaymentProvider[] = [
+    { id: "volet", name: "Volet", badge: "المفضل" },
+    { id: "advcash", name: "AdvCash" },
+  ]
+
+  // Fetch plans from API
+  useEffect(() => {
+    async function fetchPlans() {
+      try {
+        const response = await api.get<Plan[]>('/subscription/plans')
+        setPlans(response)
+      } catch (err) {
+        console.error('Failed to fetch plans:', err)
+        setError(t('failedToLoadPlans'))
+      } finally {
+        setPlansLoading(false)
+      }
+    }
+
+    fetchPlans()
+  }, [])
 
   async function handleUpgrade(planId: string) {
     if (!user) return
+    if (planId === 'free') return
+    
     setLoading(planId)
     setError(null)
     try {
-      const res = await api.post<{ url: string }>('/subscription/checkout')
-      window.location.assign(res.url)
+      const res = await api.post<{ action_url: string; fields: Record<string, string> }>(
+        `/subscription/checkout?plan_id=${planId}&provider=${selectedProvider}`
+      )
+      submitPaymentForm(res.action_url, res.fields)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('checkoutError'))
       setLoading(null)
     }
+  }
+
+  function submitPaymentForm(actionUrl: string, fields: Record<string, string>) {
+    const form = document.createElement('form')
+    form.method = 'POST'
+    form.action = actionUrl
+    form.style.display = 'none'
+    for (const [name, value] of Object.entries(fields)) {
+      const input = document.createElement('input')
+      input.type = 'hidden'
+      input.name = name
+      input.value = value
+      form.appendChild(input)
+    }
+    document.body.appendChild(form)
+    form.submit()
+  }
+
+  if (plansLoading) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-16 text-center">
+        <Spinner />
+        <p className="mt-4 text-gray-600">{t('loadingPlans')}</p>
+      </div>
+    )
   }
 
   return (
@@ -61,34 +107,63 @@ export default function PricingPage() {
         </p>
       )}
 
-      <div className="mt-10 grid gap-6 md:grid-cols-2">
+      {/* Payment Provider Selection */}
+      <div className="mt-8 flex justify-center gap-4">
+        {paymentProviders.map((provider) => (
+          <button
+            key={provider.id}
+            onClick={() => setSelectedProvider(provider.id)}
+            className={`relative rounded-lg px-6 py-3 font-semibold transition-all ${
+              selectedProvider === provider.id
+                ? 'bg-emerald-600 text-white ring-2 ring-emerald-400'
+                : 'border border-gray-300 bg-white text-gray-700 hover:border-emerald-300'
+            }`}
+          >
+            {provider.name}
+            {provider.badge && (
+              <span className="absolute -right-3 -top-3 rounded-full bg-amber-400 px-2 py-1 text-xs font-bold text-amber-900">
+                {provider.badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-10 grid gap-6 md:grid-cols-3">
         {plans.map((plan) => {
           const isCurrent = user?.plan === plan.id
-          const popular = plan.id === 'pro'
+          const isPopular = plan.id === 'pro'
+          const isWeekly = plan.id === 'weekly'
+          
           return (
             <Card
               key={plan.id}
-              className={`p-8 ${
-                popular ? 'border-emerald-500 ring-2 ring-emerald-500/30' : ''
+              className={`relative flex flex-col p-8 ${
+                isPopular ? 'border-emerald-500 ring-2 ring-emerald-500/30' : ''
               }`}
             >
+              {isPopular && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                  {t('popular')}
+                </span>
+              )}
+              
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">{plan.name}</h2>
-                {popular && (
-                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                    {t('popular')}
-                  </span>
-                )}
               </div>
+
               <div className="mt-4 flex items-end gap-1">
                 <span className="text-4xl font-bold text-gray-900">
                   {plan.price_cents === 0 ? '0' : `$${(plan.price_cents / 100).toFixed(2)}`}
                 </span>
-                <span className="mb-1 text-sm text-gray-500">{t('pricingMonthly')}</span>
+                <span className="mb-1 text-sm text-gray-500">
+                  {isWeekly ? t('weekly') : t('monthly')}
+                </span>
               </div>
-              <ul className="mt-6 space-y-3">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-gray-700">
+
+              <ul className="mt-6 flex-1 space-y-3">
+                {plan.features.map((f, idx) => (
+                  <li key={idx} className="flex items-center gap-2 text-sm text-gray-700">
                     <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-emerald-50 text-emerald-600">
                       ✓
                     </span>
@@ -96,6 +171,7 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
+
               <div className="mt-8">
                 {isCurrent ? (
                   <Button
@@ -115,14 +191,18 @@ export default function PricingPage() {
                   <Button
                     onClick={() => handleUpgrade(plan.id)}
                     disabled={loading !== null || !user}
-                    className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
+                    className={`w-full text-white ${
+                      isPopular
+                        ? 'bg-emerald-600 hover:bg-emerald-700'
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
                   >
                     {loading === plan.id ? (
                       <>
                         <Spinner /> {t('redirecting')}
                       </>
                     ) : user ? (
-                      t('upgradePro')
+                      isWeekly ? t('subscribeWeekly') : t('upgradePro')
                     ) : (
                       t('signupToUpgrade')
                     )}
@@ -132,6 +212,12 @@ export default function PricingPage() {
             </Card>
           )
         })}
+      </div>
+
+      <div className="mt-12 rounded-lg bg-blue-50 p-6 text-center">
+        <p className="text-sm text-gray-700">
+          💡 <strong>نصيحة:</strong> {t('paymentSecurityNotice')}
+        </p>
       </div>
     </div>
   )

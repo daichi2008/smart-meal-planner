@@ -12,7 +12,7 @@ smart-meal-planner/
 │       ├── core/        # config, database, security (JWT + Argon2)
 │       ├── models/      # SQLAlchemy: User, FridgeItem, SavedRecipe, RecipeCache, Subscription
 │       ├── schemas/     # Pydantic models
-│       ├── services/    # LLM client, recipe generation + cache, Stripe
+│       ├── services/    # LLM client, recipe generation + cache, AdvCash SCI
 │       └── utils/       # Redis / in-memory cache abstraction
 └── frontend/    # Next.js 16 (App Router, TypeScript, Tailwind CSS, RTL عربي)
     └── src/
@@ -59,9 +59,14 @@ npm run dev
 | `LLM_API_KEY` | مفتاح الذكاء الاصطناعي (OpenAI أو أي بوابة متوافقة) |
 | `LLM_BASE_URL` | عنوان الـ API — افتراضياً OpenAI، أو أي مزود متوافق |
 | `LLM_MODEL` | الموديل (افتراضياً gpt-4o-mini) |
-| `STRIPE_SECRET_KEY` | مفاتيح Stripe للاشتراكات |
-| `STRIPE_PRICE_PRO` | معرف سعر الاشتراك Pro في Stripe |
-| `STRIPE_WEBHOOK_SECRET` | سر الـ webhook لمزامنة الاشتراكات |
+| `ADVCASH_ACCOUNT_EMAIL` | إيميل محفظتك التجارية في Volet/AdvCash — **الفلوس بتوصل هنا** |
+| `ADVCASH_SCI_NAME` | اسم الـ SCI الذي أنشأته في حسابك (For developers → SCI) |
+| `ADVCASH_SCI_PASSWORD` | كلمة سر الـ SCI (للتوقيع والتحقق) |
+| `ADVCASH_CURRENCY` | العملة (USD افتراضياً) |
+| `ADVCASH_PLAN_PRICE_USD` | سعر خطة Pro بالدولار |
+| `ADVCASH_SUBSCRIPTION_DAYS` | مدة الاشتراك بالأيام (30 افتراضياً) |
+| `FRONTEND_URL` | رابط الواجهة |
+| `BACKEND_URL` | الرابط العام للخادم — يستقبل إشعار الدفع من AdvCash |
 
 ## الميزات
 
@@ -70,8 +75,22 @@ npm run dev
 - ✅ توليد وصفات بالذكاء الاصطناعي حسب المكونات والهدف الحراري
 - ✅ تخزين مؤقت ذكي (Redis أو في الذاكرة + طبقة قاعدة بيانات) لتقليل تكلفة الـ LLM
 - ✅ حفظ الوصفات المفضلة
-- ✅ اشتراكات Stripe (Free / Pro) مع webhook لمزامنة الحالة
+- ✅ اشتراكات عبر AdvCash (Volet) SCI: المستخدم يدفع ببطاقة أو محفظة، والفلوس توصل لمحفظتك مباشرة، مع تفعيل Pro تلقائيًا لـ 30 يوماً
 - ✅ واجهة عربية RTL كاملة مع Tailwind CSS
+
+## إعداد الدفع عبر AdvCash (Volet)
+
+1. سجّل في [Volet.com](https://volet.com) (نفس AdvCash سابقاً) وأكمل توثيق الحساب.
+2. من **For developers** (قائمة بروفايلك) → أنشئ **SCI**:
+   - اسم الـ SCI، وبيانات موقعك، و**كلمة سر الـ SCI**.
+   - صفحة نجاح: `https://موقعك/dashboard?upgraded=1`، صفحة فشل: `https://موقعك/pricing`.
+   - صفحة الحالة (status): `https://الخادم/api/v1/subscription/status` (تُرسل بالـ POST من AdvCash للخادم).
+3. ضع القيم في `backend/.env`:
+   `ADVCASH_ACCOUNT_EMAIL` (إيميل المحفظة — **الفلوس توصل هنا**)، `ADVCASH_SCI_NAME`، `ADVCASH_SCI_PASSWORD`.
+4. انتظر موافقة AdvCash على تفعيل الـ SCI (عادة ساعات).
+5. أعد تشغيل الخادم. عند الدفع، يظهر تحويل جديد في محفظتك ويُفعَّل Pro تلقائياً.
+
+> ملاحظة: الاشتراك ليس تلقائي التجديد — Pro يُفعَّل لمدة `ADVCASH_SUBSCRIPTION_DAYS` يوم، وبعدها يتحول المستخدم للخطة المجانية تلقائياً.
 
 ## ملاحظات إنتاجية
 

@@ -40,9 +40,31 @@ async def init_db() -> None:
     from app.models import fridge, recipe, subscription, user  # noqa: F401
 
     async with engine.begin() as conn:
+        if engine.dialect.name == "sqlite":
+            await conn.run_sync(_drop_legacy_stripe_schema)
         await conn.run_sync(Base.metadata.create_all)
         if engine.dialect.name == "sqlite":
             await conn.run_sync(_drop_verification_columns)
+
+
+def _drop_legacy_stripe_schema(sync_conn) -> None:
+    """Drop the old Stripe-era subscriptions table/columns (SQLite only, idempotent).
+
+    The previous version stored Stripe identifiers. The AdvCash SCI version
+    recreates the table with provider-agnostic columns, so the legacy table is
+    dropped before create_all runs.
+    """
+    from sqlalchemy import inspect, text
+
+    insp = inspect(sync_conn)
+    if "subscriptions" in insp.get_table_names():
+        cols = {c["name"] for c in insp.get_columns("subscriptions")}
+        if "stripe_subscription_id" in cols:
+            sync_conn.execute(text("DROP TABLE subscriptions"))
+    if "users" in insp.get_table_names():
+        cols = {c["name"] for c in insp.get_columns("users")}
+        if "stripe_customer_id" in cols:
+            sync_conn.execute(text("ALTER TABLE users DROP COLUMN stripe_customer_id"))
 
 
 def _drop_verification_columns(sync_conn) -> None:

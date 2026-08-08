@@ -21,12 +21,24 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "gpt-4o-mini"
     LLM_MAX_CACHE_AGE_HOURS: int = 24
 
-    STRIPE_SECRET_KEY: str = ""
-    STRIPE_WEBHOOK_SECRET: str = ""
-    STRIPE_PRICE_PRO: str = ""
-    STRIPE_CURRENCY: str = "usd"
+    ADVCASH_ACCOUNT_EMAIL: str = ""
+    ADVCASH_SCI_NAME: str = ""
+    ADVCASH_SCI_PASSWORD: str = ""
+    ADVCASH_CURRENCY: str = "USD"
+    ADVCASH_PLAN_PRICE_USD: float = 6.0
+    ADVCASH_SUBSCRIPTION_DAYS: int = 30
+
+    # Volet payment gateway configuration
+    VOLET_MERCHANT_ID: str = ""
+    VOLET_API_KEY: str = ""
+    VOLET_SECRET_KEY: str = ""
+    VOLET_WEEKLY_PRICE_USD: float = 2.0
+    VOLET_MONTHLY_PRICE_USD: float = 7.0
+    VOLET_WEEKLY_SUBSCRIPTION_DAYS: int = 7
+    VOLET_MONTHLY_SUBSCRIPTION_DAYS: int = 30
 
     FRONTEND_URL: str = "http://localhost:3000"
+    BACKEND_URL: str = "http://localhost:8000"
     CORS_ORIGINS: Annotated[list[str], NoDecode] = []
 
     @field_validator("CORS_ORIGINS", mode="before")
