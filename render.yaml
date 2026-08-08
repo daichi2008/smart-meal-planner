@@ -23,9 +23,9 @@ services:
       - key: LLM_MODEL
         value: llama-3.3-70b-versatile
       - key: FRONTEND_URL
-        sync: false
+        value: https://smart-meal-planner-seven.vercel.app
       - key: BACKEND_URL
-        sync: false
+        value: https://smart-meal-planner-api.onrender.com
       # AdvCash Configuration
       - key: ADVCASH_ACCOUNT_EMAIL
         sync: false
