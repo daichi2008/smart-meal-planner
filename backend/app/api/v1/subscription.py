@@ -77,7 +77,7 @@ async def get_my_subscription(current_user: CurrentUser, db: Db) -> Subscription
     sub = result.scalars().first()
     return SubscriptionOut(
         plan=current_user.plan.value,
-        is_pro=current_user.plan == Plan.PRO,
+        is_pro=current_user.plan in {Plan.PRO, Plan.WEEKLY},
         status=sub.status.value if sub else None,
         current_period_end=sub.current_period_end if sub else None,
         cancel_at_period_end=sub.cancel_at_period_end if sub else False,
@@ -87,9 +87,9 @@ async def get_my_subscription(current_user: CurrentUser, db: Db) -> Subscription
 @router.post("/checkout", response_model=CheckoutResponse)
 async def create_checkout(
     current_user: CurrentUser,
+    db: Db,
     plan_id: str = Query(...),
     provider: str = Query(default="volet", description="Payment provider: volet or advcash"),
-    db: Db,
 ) -> CheckoutResponse:
     """Create a checkout session for the specified plan and payment provider."""
     if plan_id not in {"weekly", "pro"}:

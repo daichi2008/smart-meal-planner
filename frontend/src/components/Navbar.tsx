@@ -59,7 +59,7 @@ export function Navbar() {
           {loading ? null : user ? (
             <>
               <span className="hidden rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 sm:inline">
-                {user.plan === 'pro' ? 'Pro' : t('planFree')}
+                {user.plan === 'pro' ? 'Pro' : user.plan === 'weekly' ? t('planWeekly') : t('planFree')}
               </span>
               <Link
                 href="/dashboard"

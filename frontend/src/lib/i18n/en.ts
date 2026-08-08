@@ -11,6 +11,7 @@ export const en = {
   navPricing: 'Pricing',
   navSaved: 'Saved recipes',
   planFree: 'Free',
+  planWeekly: 'Weekly',
   logout: 'Logout',
   login: 'Log in',
 
@@ -88,6 +89,7 @@ export const en = {
   pricingSubtitle: 'Start free, upgrade to Pro whenever you need more.',
   pricingMonthly: '/ month',
   weekly: '/ week',
+  monthly: '/ month',
   popular: 'Most popular',
   currentPlan: 'Your current plan',
   startFree: 'Start free',

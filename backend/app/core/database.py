@@ -64,6 +64,7 @@ def _drop_legacy_stripe_schema(sync_conn) -> None:
     if "users" in insp.get_table_names():
         cols = {c["name"] for c in insp.get_columns("users")}
         if "stripe_customer_id" in cols:
+            sync_conn.execute(text("DROP INDEX IF EXISTS ix_users_stripe_customer_id"))
             sync_conn.execute(text("ALTER TABLE users DROP COLUMN stripe_customer_id"))
 
 

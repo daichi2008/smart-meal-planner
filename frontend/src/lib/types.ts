@@ -2,7 +2,7 @@ export interface User {
   id: string
   email: string
   full_name: string | null
-  plan: 'free' | 'pro'
+  plan: 'free' | 'weekly' | 'pro'
   calorie_target: number | null
   dietary_preferences: string | null
   is_active: boolean
@@ -58,7 +58,7 @@ export interface Plan {
 }
 
 export interface SubscriptionInfo {
-  plan: 'free' | 'pro'
+  plan: 'free' | 'weekly' | 'pro'
   is_pro: boolean
   status: string | null
   current_period_end: string | null

@@ -11,6 +11,7 @@ export const ar = {
   navPricing: 'الأسعار',
   navSaved: 'الوصفات المحفوظة',
   planFree: 'مجاني',
+  planWeekly: 'أسبوعي',
   logout: 'خروج',
   login: 'دخول',
 
@@ -88,6 +89,7 @@ export const ar = {
   pricingSubtitle: 'ابدأ مجاناً، ورقِّ للـ Pro متى احتجت المزيد.',
   pricingMonthly: '/ شهرياً',
   weekly: '/ أسبوعياً',
+  monthly: '/ شهرياً',
   popular: 'الأكثر شيوعاً',
   currentPlan: 'خطتك الحالية',
   startFree: 'ابدأ مجاناً',

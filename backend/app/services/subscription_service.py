@@ -8,8 +8,8 @@ from app.models.user import Plan, User
 
 
 async def maybe_expire_subscription(db: AsyncSession, user: User) -> None:
-    """Downgrade Pro users whose paid period has ended (lazy expiration)."""
-    if user.plan != Plan.PRO:
+    """Downgrade paid users whose paid period has ended (lazy expiration)."""
+    if user.plan not in {Plan.PRO, Plan.WEEKLY}:
         return
     result = await db.execute(
         select(Subscription)

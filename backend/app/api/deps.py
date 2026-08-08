@@ -41,10 +41,10 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 async def require_pro(user: CurrentUser) -> User:
-    if user.plan != Plan.PRO:
+    if user.plan not in {Plan.PRO, Plan.WEEKLY}:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="This feature requires a Pro subscription",
+            detail="This feature requires a paid subscription",
         )
     return user
 
