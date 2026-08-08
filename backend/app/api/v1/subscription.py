@@ -89,7 +89,7 @@ async def create_checkout(
     current_user: CurrentUser,
     plan_id: str = Query(...),
     provider: str = Query(default="volet", description="Payment provider: volet or advcash"),
-    db: Db = Depends(get_db),
+    db: Db,
 ) -> CheckoutResponse:
     """Create a checkout session for the specified plan and payment provider."""
     if plan_id not in {"weekly", "pro"}:
