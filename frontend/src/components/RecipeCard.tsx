@@ -36,12 +36,12 @@ export function RecipeCard({
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-2">
+    <div className="card card-hover overflow-hidden p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">{recipe.title}</h3>
+          <h3 className="text-lg font-bold tracking-tight text-gray-900">{recipe.title}</h3>
           {recipe.summary && (
-            <p className="mt-1 text-sm text-gray-600">{recipe.summary}</p>
+            <p className="mt-1 text-sm leading-relaxed text-gray-600">{recipe.summary}</p>
           )}
         </div>
         <div className="flex gap-2">
@@ -59,21 +59,24 @@ export function RecipeCard({
       </div>
 
       {recipe.macros && (
-        <div className="mt-3 flex gap-2 text-xs">
-          <span className="rounded-md bg-gray-200 px-2 py-1 text-gray-700">
-            {t('protein')} {Math.round(recipe.macros.protein)}g
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="chip">
+            <span className="me-1 font-semibold text-gray-900">{t('protein')}</span>
+            {Math.round(recipe.macros.protein)}g
           </span>
-          <span className="rounded-md bg-gray-200 px-2 py-1 text-gray-700">
-            {t('carbs')} {Math.round(recipe.macros.carbs)}g
+          <span className="chip">
+            <span className="me-1 font-semibold text-gray-900">{t('carbs')}</span>
+            {Math.round(recipe.macros.carbs)}g
           </span>
-          <span className="rounded-md bg-gray-200 px-2 py-1 text-gray-700">
-            {t('fat')} {Math.round(recipe.macros.fat)}g
+          <span className="chip">
+            <span className="me-1 font-semibold text-gray-900">{t('fat')}</span>
+            {Math.round(recipe.macros.fat)}g
           </span>
         </div>
       )}
 
       {recipe.tags && recipe.tags.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1">
+        <div className="mt-3 flex flex-wrap gap-1.5">
           {recipe.tags.map((tag) => (
             <Badge key={tag} className="bg-gray-100 text-gray-600">
               {tag}
@@ -83,23 +86,17 @@ export function RecipeCard({
       )}
 
       {recipe.missing_ingredients && recipe.missing_ingredients.length > 0 && (
-        <p className="mt-3 text-sm text-amber-700">
+        <p className="mt-3 rounded-xl bg-amber-50 px-3.5 py-2 text-sm text-amber-700">
           {t('missingIngredients')} {recipe.missing_ingredients.join(', ')}
         </p>
       )}
 
       <div className="mt-4 flex items-center gap-2">
-        <Button
-          onClick={() => setExpanded(!expanded)}
-          className="bg-white text-gray-700 shadow-sm hover:bg-gray-100"
-        >
+        <Button variant="secondary" onClick={() => setExpanded(!expanded)}>
           {expanded ? t('hideSteps') : t('showSteps')}
         </Button>
         {onDelete ? (
-          <Button
-            onClick={onDelete}
-            className="bg-red-50 text-red-600 hover:bg-red-100"
-          >
+          <Button variant="danger" onClick={onDelete}>
             {t('delete')}
           </Button>
         ) : (
@@ -108,7 +105,7 @@ export function RecipeCard({
             disabled={saving || saved}
             className={`${
               saved
-                ? 'bg-emerald-100 text-emerald-700'
+                ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100'
                 : 'bg-gray-900 text-white hover:bg-gray-700'
             }`}
           >
@@ -118,25 +115,33 @@ export function RecipeCard({
       </div>
 
       {expanded && (
-        <div className="mt-4 space-y-4">
+        <div className="mt-5 space-y-5 border-t border-gray-100 pt-5">
           <div>
             <h4 className="text-sm font-bold text-gray-800">{t('ingredientsTitle')}</h4>
-            <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-gray-600">
+            <ul className="mt-2 space-y-1.5 text-sm text-gray-600">
               {recipe.ingredients.map((ing) => (
-                <li key={ing}>{ing}</li>
+                <li key={ing} className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+                  {ing}
+                </li>
               ))}
             </ul>
           </div>
           <div>
             <h4 className="text-sm font-bold text-gray-800">{t('stepsTitle')}</h4>
-            <ol className="mt-2 list-inside list-decimal space-y-1 text-sm text-gray-600">
+            <ol className="mt-2 space-y-2 text-sm text-gray-600">
               {recipe.steps.map((step, i) => (
-                <li key={i}>{step}</li>
+                <li key={i} className="flex gap-3">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">
+                    {i + 1}
+                  </span>
+                  <span className="leading-relaxed">{step}</span>
+                </li>
               ))}
             </ol>
           </div>
           {recipe.tip && (
-            <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            <p className="rounded-xl bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
               💡 {recipe.tip}
             </p>
           )}

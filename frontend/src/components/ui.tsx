@@ -1,23 +1,27 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react'
 
 export function Button({
+  variant = 'primary',
   className = '',
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
-      {...props}
-    />
-  )
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' }) {
+  const variantClass = {
+    primary: 'btn-primary',
+    secondary: 'btn-secondary',
+    danger: 'btn-danger',
+  }[variant]
+  return <button className={`${variantClass} ${className}`} {...props} />
 }
 
 export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
+  return <input className={`input ${className}`} {...props} />
+}
+
+export function Select({ className = '', children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <input
-      className={`w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 ${className}`}
-      {...props}
-    />
+    <select className={`select ${className}`} {...props}>
+      {children}
+    </select>
   )
 }
 
@@ -37,19 +41,27 @@ export function Badge({
   children: ReactNode
   className?: string
 }) {
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${className}`}
-    >
-      {children}
-    </span>
-  )
+  return <span className={`badge ${className}`}>{children}</span>
 }
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <div className={`card ${className}`}>{children}</div>
+}
+
+export function Field({
+  label,
+  children,
+  hint,
+}: {
+  label: string
+  children: ReactNode
+  hint?: string
+}) {
   return (
-    <div className={`rounded-2xl border border-gray-200 bg-white shadow-sm ${className}`}>
+    <div>
+      <label className="label">{label}</label>
       {children}
+      {hint && <p className="mt-1 text-xs text-gray-400">{hint}</p>}
     </div>
   )
 }

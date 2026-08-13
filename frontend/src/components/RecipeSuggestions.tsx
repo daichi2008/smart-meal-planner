@@ -6,7 +6,7 @@ import { api } from '@/lib/api'
 import type { FridgeItem, Recipe, RecipeSuggestionResponse } from '@/lib/types'
 import { useI18n } from '@/lib/i18n'
 import { RecipeCard } from '@/components/RecipeCard'
-import { Button, Card, Input, Spinner } from '@/components/ui'
+import { Button, Card, Field, Input, Select, Spinner } from '@/components/ui'
 
 export function RecipeSuggestions({
   items,
@@ -55,18 +55,22 @@ export function RecipeSuggestions({
 
   return (
     <Card className="p-6">
-      <h2 className="text-lg font-bold text-gray-900">✨ {t('suggestionsTitle')}</h2>
-      <p className="mt-1 text-sm text-gray-500">
-        {items.length > 0
-          ? t('suggestionsHint', { n: items.length })
-          : t('suggestionsEmpty')}
-      </p>
-
-      <form onSubmit={suggest} className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="flex items-center gap-3">
+        <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-lg text-white shadow-md shadow-emerald-500/25">
+          ✨
+        </span>
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500" htmlFor="calories">
-            {t('dailyGoal')}
-          </label>
+          <h2 className="text-lg font-bold text-gray-900">{t('suggestionsTitle')}</h2>
+          <p className="mt-0.5 text-sm text-gray-500">
+            {items.length > 0
+              ? t('suggestionsHint', { n: items.length })
+              : t('suggestionsEmpty')}
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={suggest} className="mt-5 grid gap-3 sm:grid-cols-2">
+        <Field label={t('dailyGoal')}>
           <Input
             id="calories"
             type="number"
@@ -77,35 +81,31 @@ export function RecipeSuggestions({
             onChange={(e) => setCalories(e.target.value)}
             placeholder="2000"
           />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500" htmlFor="meal">
-            {t('mealType')}
-          </label>
-          <select
+        </Field>
+        <Field label={t('mealType')}>
+          <Select
             id="meal"
             value={mealType}
             onChange={(e) => setMealType(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
           >
             {MEAL_TYPES.map((m) => (
               <option key={m.value} value={m.value}>
                 {m.label}
               </option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </Field>
         <div className="sm:col-span-2">
-          <label className="mb-1 block text-xs font-medium text-gray-500">{t('recipeCount')}</label>
-          <div className="flex gap-1">
+          <p className="label">{t('recipeCount')}</p>
+          <div className="flex gap-1.5">
             {[1, 2, 3, 4, 5].map((n) => (
               <button
                 key={n}
                 type="button"
                 onClick={() => setCount(n)}
-                className={`h-9 w-9 rounded-lg text-sm font-semibold transition-colors ${
+                className={`h-10 w-10 rounded-xl text-sm font-semibold transition-all ${
                   count === n
-                    ? 'bg-emerald-600 text-white'
+                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
@@ -117,7 +117,7 @@ export function RecipeSuggestions({
         <Button
           type="submit"
           disabled={loading || items.length === 0}
-          className="w-full bg-emerald-600 text-white hover:bg-emerald-700 sm:col-span-2"
+          className="w-full py-3 sm:col-span-2"
         >
           {loading ? (
             <>
@@ -130,7 +130,7 @@ export function RecipeSuggestions({
       </form>
 
       {error && (
-        <p className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">{error}</p>
+        <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{error}</p>
       )}
 
       {recipes.length > 0 && (

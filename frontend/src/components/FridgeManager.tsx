@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import type { FridgeItem } from '@/lib/types'
 import { useI18n } from '@/lib/i18n'
-import { Button, Card, Input } from '@/components/ui'
+import { Button, Card, Field, Input, Select } from '@/components/ui'
 
 export function FridgeManager({
   onItemsChange,
@@ -119,38 +119,33 @@ export function FridgeManager({
     }
   }
 
+  const hasExpired = items.some((i) => i.expires_at && new Date(i.expires_at) < new Date())
+
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-gray-900">🧊 {t('fridgeTitle')}</h2>
-        {items.some((i) => i.expires_at && new Date(i.expires_at) < new Date()) && (
-          <Button
-            onClick={removeExpired}
-            className="bg-amber-50 text-amber-700 hover:bg-amber-100"
-          >
+        <div className="flex items-center gap-3">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-100 text-lg">🧊</span>
+          <h2 className="text-lg font-bold text-gray-900">{t('fridgeTitle')}</h2>
+        </div>
+        {hasExpired && (
+          <Button variant="danger" onClick={removeExpired}>
             {t('removeExpired')}
           </Button>
         )}
       </div>
 
-      <form onSubmit={addItem} className="mt-4 space-y-3">
-        <div>
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700" htmlFor="item-name">
-            {t('fieldName')}
-          </label>
+      <form onSubmit={addItem} className="mt-5 space-y-3">
+        <Field label={t('fieldName')}>
           <Input
             id="item-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={t('fieldNamePlaceholder')}
-            className="flex-1"
           />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-gray-700" htmlFor="item-qty">
-              {t('fieldQty')}
-            </label>
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={t('fieldQty')}>
             <Input
               id="item-qty"
               type="number"
@@ -160,11 +155,8 @@ export function FridgeManager({
               onChange={(e) => setQuantity(e.target.value)}
               aria-label={t('fieldQty')}
             />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-gray-700" htmlFor="item-unit">
-              {t('fieldUnit')}
-            </label>
+          </Field>
+          <Field label={t('fieldUnit')}>
             <Input
               id="item-unit"
               value={unit}
@@ -172,34 +164,28 @@ export function FridgeManager({
               placeholder="kg / g / ml"
               aria-label={t('fieldUnit')}
             />
-          </div>
+          </Field>
         </div>
-        <div>
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700" htmlFor="item-cat">
-            {t('fieldCategory')}
-          </label>
-          <div className="flex items-center gap-2">
-            <select
-              id="item-cat"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none"
-              aria-label={t('fieldCategory')}
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-            <Button
-              type="submit"
-              disabled={!name.trim()}
-              className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700"
-            >
-              {t('addItem')}
-            </Button>
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <Field label={t('fieldCategory')}>
+              <Select
+                id="item-cat"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                aria-label={t('fieldCategory')}
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
           </div>
+          <Button type="submit" disabled={!name.trim()} className="min-w-28">
+            {t('addItem')}
+          </Button>
         </div>
       </form>
 
@@ -209,16 +195,17 @@ export function FridgeManager({
         {loading ? (
           <p className="py-6 text-center text-sm text-gray-400">{t('loading')}</p>
         ) : items.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 py-8 text-center">
-            <p className="text-gray-500">{t('fridgeEmpty')}</p>
+          <div className="rounded-2xl border border-dashed border-gray-300 py-10 text-center">
+            <p className="text-3xl">🥕</p>
+            <p className="mt-2 font-medium text-gray-500">{t('fridgeEmpty')}</p>
             <p className="mt-1 text-sm text-gray-400">{t('fridgeEmptyHint')}</p>
           </div>
         ) : (
           <ul className="divide-y divide-gray-100">
             {items.map((item) => (
-              <li key={item.id} className="flex items-center justify-between py-2.5">
+              <li key={item.id} className="group flex items-center justify-between py-2.5">
                 <div className="flex items-center gap-3">
-                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-gray-100 text-sm">
+                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-emerald-50 text-sm">
                     {iconFor(item.category)}
                   </span>
                   <div>
@@ -230,7 +217,7 @@ export function FridgeManager({
                 </div>
                 <button
                   onClick={() => deleteItem(item.id)}
-                  className="rounded-lg px-2 py-1 text-sm text-red-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                  className="rounded-lg px-2.5 py-1 text-sm text-gray-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
                   aria-label={`${t('delete')} ${item.name}`}
                 >
                   {t('delete')}

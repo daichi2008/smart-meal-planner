@@ -50,7 +50,7 @@ export default function PricingPage() {
     }
 
     fetchPlans()
-  }, [])
+  }, [t])
 
   async function handleUpgrade(planId: string) {
     if (!user) return

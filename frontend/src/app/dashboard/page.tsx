@@ -9,7 +9,7 @@ import { api } from '@/lib/api'
 import type { FridgeItem, User } from '@/lib/types'
 import { FridgeManager } from '@/components/FridgeManager'
 import { RecipeSuggestions } from '@/components/RecipeSuggestions'
-import { Button, Card, Input } from '@/components/ui'
+import { Button, Card, Field, Input } from '@/components/ui'
 
 export default function DashboardPage() {
   return (
@@ -47,28 +47,35 @@ function DashboardInner() {
     return <div className="py-24 text-center text-gray-400">{t('dashLoading')}</div>
   }
 
+  const planPill =
+    user.plan === 'pro' ? (
+      <span className="badge bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700">★ Pro</span>
+    ) : user.plan === 'weekly' ? (
+      <span className="badge bg-teal-50 text-teal-700">{t('planWeekly')}</span>
+    ) : (
+      <span className="badge bg-gray-100 text-gray-600">{t('planFree')}</span>
+    )
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {t('dashGreeting')} {user.full_name ?? user.email.split('@')[0]} 👋
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+              {t('dashGreeting')} {user.full_name ?? user.email.split('@')[0]}
+            </h1>
+            {planPill}
+          </div>
           <p className="mt-1 text-sm text-gray-500">{t('dashSubtitle')}</p>
         </div>
-        <Button
-          onClick={() => setSettingsOpen(!settingsOpen)}
-          className="bg-white text-gray-700 shadow-sm hover:bg-gray-100"
-        >
+        <Button variant="secondary" onClick={() => setSettingsOpen(!settingsOpen)}>
           ⚙️ {t('dashSettings')}
         </Button>
       </div>
 
       {upgradeNotice && (
-        <div className="mb-6 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-          <p className="text-sm font-medium text-emerald-800">
-            🎉 {t('upgradeNotice')}
-          </p>
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 px-4 py-3">
+          <p className="text-sm font-medium text-emerald-800">🎉 {t('upgradeNotice')}</p>
           <button
             onClick={() => setUpgradeNotice(false)}
             className="text-sm text-emerald-600 hover:text-emerald-800"
@@ -114,12 +121,12 @@ function SettingsForm({ user, onSaved }: { user: User; onSaved: () => Promise<vo
 
   return (
     <Card className="mb-6 p-6">
-      <h2 className="text-lg font-bold text-gray-900">🎯 {t('settingsTitle')}</h2>
-      <form onSubmit={saveSettings} className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700" htmlFor="cal">
-            {t('settingsCalories')}
-          </label>
+      <div className="flex items-center gap-3">
+        <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-100 text-lg">🎯</span>
+        <h2 className="text-lg font-bold text-gray-900">{t('settingsTitle')}</h2>
+      </div>
+      <form onSubmit={saveSettings} className="mt-5 grid gap-4 sm:grid-cols-2">
+        <Field label={t('settingsCalories')}>
           <Input
             id="cal"
             type="number"
@@ -130,24 +137,17 @@ function SettingsForm({ user, onSaved }: { user: User; onSaved: () => Promise<vo
             onChange={(e) => setCalories(e.target.value)}
             placeholder="2000"
           />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700" htmlFor="pref">
-            {t('settingsPrefs')}
-          </label>
+        </Field>
+        <Field label={t('settingsPrefs')}>
           <Input
             id="pref"
             value={preferences}
             onChange={(e) => setPreferences(e.target.value)}
             placeholder={t('settingsPrefsPlaceholder')}
           />
-        </div>
+        </Field>
         <div className="sm:col-span-2">
-          <Button
-            type="submit"
-            disabled={saving}
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
-          >
+          <Button type="submit" disabled={saving}>
             {saving ? t('settingsSaving') : t('settingsSave')}
           </Button>
         </div>
