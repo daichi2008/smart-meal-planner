@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/hooks/useAuth";
 
 const DEMO_ICONS: Record<string, string> = {
   demoItem1Name: "🍅",
@@ -15,6 +16,9 @@ const DEMO_ICONS: Record<string, string> = {
 
 export default function Home() {
   const { t, dir } = useI18n();
+  const { user } = useAuth();
+
+  const startHref = user ? "/dashboard" : "/register";
 
   const demoItems = [
     t("demoItem1Name"),
@@ -66,7 +70,7 @@ export default function Home() {
             </p>
 
             <div className={`mt-8 flex flex-col gap-3 sm:flex-row ${dir === 'rtl' ? 'lg:justify-start' : 'lg:justify-start'}`}>
-              <Link href="/register" className="btn-primary px-7 py-3 text-base">
+              <Link href={startHref} className="btn-primary px-7 py-3 text-base">
                 {t("ctaStartFree")}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   {dir === 'rtl' ? <path d="M19 12H5m7-7-7 7 7 7" transform="scale(-1,1) translate(-24,0)" /> : <path d="M5 12h14m-7-7 7 7-7 7" />}
@@ -176,7 +180,7 @@ export default function Home() {
             {t("ctaBottomDesc")}
           </p>
           <Link
-            href="/register"
+            href={startHref}
             className="btn relative mt-8 bg-white px-8 py-3 text-base text-emerald-700 shadow-lg hover:bg-emerald-50"
           >
             {t("ctaBottomBtn")}

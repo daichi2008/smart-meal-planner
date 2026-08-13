@@ -1,19 +1,25 @@
 'use client'
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { Button, Field, Input } from "@/components/ui";
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, user, loading } = useAuth()
   const { t } = useI18n()
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!loading && user) router.replace('/dashboard')
+  }, [loading, user, router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

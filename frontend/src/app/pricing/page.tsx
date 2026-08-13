@@ -182,7 +182,7 @@ export default function PricingPage() {
                   </Button>
                 ) : plan.id === 'free' ? (
                   <Link
-                    href="/register"
+                    href={user ? "/dashboard" : "/register"}
                     className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-center text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
                   >
                     {user ? t('freeNow') : t('startFree')}
