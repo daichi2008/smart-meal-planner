@@ -10,9 +10,13 @@ import { Badge, Button } from '@/components/ui'
 export function RecipeCard({
   recipe,
   onDelete,
+  onLog,
+  logged,
 }: {
   recipe: Recipe
   onDelete?: () => void
+  onLog?: () => void
+  logged?: boolean
 }) {
   const { t } = useI18n()
   const [expanded, setExpanded] = useState(false)
@@ -91,10 +95,19 @@ export function RecipeCard({
         </p>
       )}
 
-      <div className="mt-4 flex items-center gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <Button variant="secondary" onClick={() => setExpanded(!expanded)}>
           {expanded ? t('hideSteps') : t('showSteps')}
         </Button>
+        {onLog && (
+          <Button
+            onClick={onLog}
+            disabled={logged}
+            className={logged ? 'bg-orange-100 text-orange-700 hover:bg-orange-100' : 'bg-orange-500 text-white hover:bg-orange-600'}
+          >
+            {logged ? `✓ ${t('loggedRecipe')}` : t('logRecipeBtn')}
+          </Button>
+        )}
         {onDelete ? (
           <Button variant="danger" onClick={onDelete}>
             {t('delete')}

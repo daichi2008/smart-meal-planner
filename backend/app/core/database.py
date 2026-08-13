@@ -37,7 +37,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    from app.models import fridge, recipe, subscription, user  # noqa: F401
+    from app.models import fridge, meal, recipe, subscription, user  # noqa: F401
 
     async with engine.begin() as conn:
         if engine.dialect.name == "sqlite":

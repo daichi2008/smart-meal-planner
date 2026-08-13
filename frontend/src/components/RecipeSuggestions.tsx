@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { api } from '@/lib/api'
 import type { FridgeItem, Recipe, RecipeSuggestionResponse } from '@/lib/types'
 import { useI18n } from '@/lib/i18n'
+import { notifyMealsChanged } from '@/lib/mealsBus'
 import { RecipeCard } from '@/components/RecipeCard'
 import { Button, Card, Field, Input, Select, Spinner } from '@/components/ui'
 
@@ -24,6 +25,7 @@ export function RecipeSuggestions({
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loggedIds, setLoggedIds] = useState<Set<string>>(new Set())
 
   const MEAL_TYPES = [
     { value: '', label: t('allMeals') },
@@ -50,6 +52,22 @@ export function RecipeSuggestions({
       setError(err instanceof Error ? err.message : t('generateError'))
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function logRecipe(recipe: Recipe) {
+    setError(null)
+    try {
+      await api.post('/meals', {
+        title: recipe.title,
+        calories: recipe.calories_per_serving,
+        meal_type: mealType || null,
+        data: recipe,
+      })
+      setLoggedIds((prev) => new Set(prev).add(recipe.title))
+      notifyMealsChanged()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('generateError'))
     }
   }
 
@@ -136,7 +154,12 @@ export function RecipeSuggestions({
       {recipes.length > 0 && (
         <div className="mt-6 space-y-4">
           {recipes.map((recipe, index) => (
-            <RecipeCard key={`${recipe.title}-${index}`} recipe={recipe} />
+            <RecipeCard
+              key={`${recipe.title}-${index}`}
+              recipe={recipe}
+              logged={loggedIds.has(recipe.title)}
+              onLog={() => logRecipe(recipe)}
+            />
           ))}
         </div>
       )}

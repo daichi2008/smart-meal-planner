@@ -33,7 +33,11 @@ class User(Base):
     saved_recipes: Mapped[list["SavedRecipe"]] = relationship(
         back_populates="owner", cascade="all, delete-orphan"
     )
+    meal_logs: Mapped[list["MealLog"]] = relationship(
+        back_populates="owner", cascade="all, delete-orphan"
+    )
 
 
 from app.models.fridge import FridgeItem  # noqa: E402
+from app.models.meal import MealLog  # noqa: E402
 from app.models.recipe import SavedRecipe  # noqa: E402

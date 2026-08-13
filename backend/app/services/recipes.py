@@ -36,6 +36,7 @@ def build_user_prompt(
     count: int = 3,
     dietary_preferences: str | None = None,
     language: str | None = None,
+    avoid_titles: list[str] | None = None,
 ) -> str:
     parts = [f"Available ingredients: {', '.join(ingredients) or '(none listed)'}"]
     if language in {"en", "ar"}:
@@ -47,11 +48,25 @@ def build_user_prompt(
         parts.append(f"Meal type: {meal_type}.")
     if dietary_preferences:
         parts.append(f"Dietary preferences: {dietary_preferences}.")
+    if avoid_titles:
+        parts.append(
+            "The user recently ate these dishes — do NOT propose any of them, choose different recipes: "
+            + ", ".join(avoid_titles[:20])
+            + "."
+        )
     parts.append(f"Propose {count} recipes.")
     return "\n".join(parts)
 
 
-def build_cache_key(ingredients: list[str], calorie_target: float | None, meal_type: str | None, count: int, dietary_preferences: str | None, language: str | None) -> str:
+def build_cache_key(
+    ingredients: list[str],
+    calorie_target: float | None,
+    meal_type: str | None,
+    count: int,
+    dietary_preferences: str | None,
+    language: str | None,
+    avoid_titles: list[str] | None = None,
+) -> str:
     raw = json.dumps(
         {
             "i": sorted(x.strip().lower() for x in ingredients if x.strip()),
@@ -60,6 +75,7 @@ def build_cache_key(ingredients: list[str], calorie_target: float | None, meal_t
             "n": count,
             "d": dietary_preferences,
             "l": language,
+            "a": sorted(x.strip().lower() for x in (avoid_titles or [])),
         },
         sort_keys=True,
     )
@@ -102,8 +118,11 @@ async def suggest_recipes(
     count: int = 3,
     dietary_preferences: str | None = None,
     language: str | None = None,
+    avoid_titles: list[str] | None = None,
 ) -> tuple[dict, str]:
-    cache_key = build_cache_key(ingredients, calorie_target, meal_type, count, dietary_preferences, language)
+    cache_key = build_cache_key(
+        ingredients, calorie_target, meal_type, count, dietary_preferences, language, avoid_titles
+    )
 
     cached = await get_cached_payload(db, cache_key)
     if cached is not None:
@@ -123,6 +142,7 @@ async def suggest_recipes(
             count=count,
             dietary_preferences=dietary_preferences,
             language=language,
+            avoid_titles=avoid_titles,
         ),
     )
 

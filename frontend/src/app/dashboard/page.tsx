@@ -8,6 +8,7 @@ import { useI18n } from '@/lib/i18n'
 import { api } from '@/lib/api'
 import type { FridgeItem, User } from '@/lib/types'
 import { FridgeManager } from '@/components/FridgeManager'
+import { MealTracker } from '@/components/MealTracker'
 import { RecipeSuggestions } from '@/components/RecipeSuggestions'
 import { Button, Card, Field, Input } from '@/components/ui'
 
@@ -87,12 +88,15 @@ function DashboardInner() {
 
       {settingsOpen && <SettingsForm user={user} onSaved={refreshUser} />}
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-2">
-          <FridgeManager onItemsChange={setItems} />
-        </div>
-        <div className="lg:col-span-3">
-          <RecipeSuggestions items={items} defaultCalorieTarget={user.calorie_target} />
+      <div className="space-y-6">
+        <MealTracker />
+        <div className="grid gap-6 lg:grid-cols-5">
+          <div className="lg:col-span-2">
+            <FridgeManager onItemsChange={setItems} />
+          </div>
+          <div className="lg:col-span-3">
+            <RecipeSuggestions items={items} defaultCalorieTarget={user.calorie_target} />
+          </div>
         </div>
       </div>
     </div>

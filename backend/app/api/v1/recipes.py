@@ -1,4 +1,5 @@
 import logging
+from datetime import date, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import CurrentUser
 from app.core.database import get_db
 from app.models.fridge import FridgeItem
+from app.models.meal import MealLog
 from app.models.recipe import SavedRecipe
 from app.schemas.recipe import (
     RecipeOut,
@@ -65,6 +67,17 @@ async def suggest(
 
     target = request.calorie_target or current_user.calorie_target
 
+    recent_start = date.today() - timedelta(days=7)
+    recent_result = await db.execute(
+        select(MealLog.title)
+        .where(
+            MealLog.user_id == current_user.id,
+            MealLog.eaten_on >= recent_start,
+        )
+        .distinct()
+    )
+    avoid_titles = [title for title in recent_result.scalars().all() if title]
+
     try:
         await check_and_consume_quota(current_user)
         payload, source = await suggest_recipes(
@@ -75,6 +88,7 @@ async def suggest(
             count=request.count,
             dietary_preferences=current_user.dietary_preferences,
             language=request.language,
+            avoid_titles=avoid_titles,
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc

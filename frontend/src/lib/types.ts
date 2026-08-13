@@ -64,3 +64,38 @@ export interface SubscriptionInfo {
   current_period_end: string | null
   cancel_at_period_end: boolean
 }
+
+export interface MealLog {
+  id: string
+  title: string
+  meal_type: string | null
+  calories: number | null
+  eaten_on: string
+  created_at: string
+  recipe: Recipe | null
+}
+
+export interface DailyCalories {
+  date: string
+  calories: number
+  meals: number
+}
+
+export interface MealSummary {
+  days: DailyCalories[]
+  average_calories: number
+  target: number | null
+  consumed_today: number
+  meals_today: number
+  remaining_today: number | null
+}
+
+export interface UserStats {
+  plan: 'free' | 'weekly' | 'pro'
+  fridge_count: number
+  saved_count: number
+  meals_logged_total: number
+  streak_days: number
+  suggestions_used_today: number
+  weekly_average_calories: number
+}
