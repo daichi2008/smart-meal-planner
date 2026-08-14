@@ -16,6 +16,9 @@ export const metadata: Metadata = {
   title: "مطبخك الذكي | مخطط وجبات ذكي",
   description:
     "أدخل مكونات ثلاجتك واحصل على وصفات صحية فورية مطابقة لهدفك اليومي من السعرات الحرارية.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

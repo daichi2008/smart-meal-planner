@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 
@@ -40,9 +41,14 @@ export function Navbar() {
     <header className="sticky top-0 z-40 border-b border-gray-200/70 bg-white/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-lg shadow-md shadow-emerald-500/30">
-            🥗
-          </span>
+          <Image
+            src="/logo.svg"
+            alt={t('appName')}
+            width={36}
+            height={36}
+            priority
+            className="rounded-xl shadow-md shadow-emerald-500/30"
+          />
           <span className="text-lg font-bold tracking-tight text-gray-900">{t('appName')}</span>
         </Link>
 

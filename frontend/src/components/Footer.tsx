@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 
 import { useAuth } from '@/hooks/useAuth'
 import { useI18n } from '@/lib/i18n'
@@ -14,9 +15,13 @@ export function Footer() {
       <div className="mx-auto grid max-w-6xl gap-8 px-4 md:grid-cols-3">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-base">
-              🥗
-            </span>
+            <Image
+              src="/logo.svg"
+              alt={t('appName')}
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
             <span className="text-base font-bold text-gray-900">{t('appName')}</span>
           </div>
           <p className="mt-3 max-w-xs text-sm text-gray-500">{t('tagline')}</p>

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -43,9 +44,14 @@ export default function RegisterPage() {
       <div className="card relative overflow-hidden p-8">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
         <div className="mb-6 text-center">
-          <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-2xl shadow-lg shadow-emerald-500/30">
-            🥗
-          </span>
+          <Image
+            src="/logo.svg"
+            alt={t('appName')}
+            width={56}
+            height={56}
+            priority
+            className="mx-auto rounded-2xl shadow-lg shadow-emerald-500/30"
+          />
           <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900">{t('registerTitle')}</h1>
           <p className="mt-1 text-sm text-gray-500">{t('registerSubtitle')}</p>
         </div>
