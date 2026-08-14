@@ -41,8 +41,8 @@ export default function LoginPage() {
           <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-2xl shadow-lg shadow-emerald-500/30">
             👋
           </span>
-          <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900">{t('loginTitle')}</h1>
-          <p className="mt-1 text-sm text-gray-500">{t('loginSubtitle')}</p>
+          <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-slate-100">{t('loginTitle')}</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">{t('loginSubtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -70,7 +70,7 @@ export default function LoginPage() {
           </Field>
 
           {error && (
-            <p className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700">{error}</p>
+            <p className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">{error}</p>
           )}
 
           <Button type="submit" disabled={submitting} className="w-full py-3">
@@ -78,7 +78,7 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
+        <p className="mt-6 text-center text-sm text-gray-500 dark:text-slate-400">
           {t('noAccount')}{' '}
           <Link href="/register" className="link">
             {t('createAccount')}

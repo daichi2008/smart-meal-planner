@@ -45,16 +45,16 @@ function DashboardInner() {
   }, [searchParams, refreshUser])
 
   if (loading || !user) {
-    return <div className="py-24 text-center text-gray-400">{t('dashLoading')}</div>
+    return <div className="py-24 text-center text-gray-400 dark:text-slate-500">{t('dashLoading')}</div>
   }
 
   const planPill =
     user.plan === 'pro' ? (
-      <span className="badge bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700">★ Pro</span>
+      <span className="badge bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 dark:from-amber-500/20 dark:to-orange-500/20 dark:text-amber-300">★ Pro</span>
     ) : user.plan === 'weekly' ? (
-      <span className="badge bg-teal-50 text-teal-700">{t('planWeekly')}</span>
+      <span className="badge bg-teal-50 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300">{t('planWeekly')}</span>
     ) : (
-      <span className="badge bg-gray-100 text-gray-600">{t('planFree')}</span>
+      <span className="badge bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-400">{t('planFree')}</span>
     )
 
   return (
@@ -62,12 +62,12 @@ function DashboardInner() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-slate-100">
               {t('dashGreeting')} {user.full_name ?? user.email.split('@')[0]}
             </h1>
             {planPill}
           </div>
-          <p className="mt-1 text-sm text-gray-500">{t('dashSubtitle')}</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">{t('dashSubtitle')}</p>
         </div>
         <Button variant="secondary" onClick={() => setSettingsOpen(!settingsOpen)}>
           ⚙️ {t('dashSettings')}
@@ -75,11 +75,11 @@ function DashboardInner() {
       </div>
 
       {upgradeNotice && (
-        <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 px-4 py-3">
-          <p className="text-sm font-medium text-emerald-800">🎉 {t('upgradeNotice')}</p>
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 px-4 py-3 dark:border-emerald-500/30 dark:from-emerald-500/10 dark:to-teal-500/10">
+          <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">🎉 {t('upgradeNotice')}</p>
           <button
             onClick={() => setUpgradeNotice(false)}
-            className="text-sm text-emerald-600 hover:text-emerald-800"
+            className="text-sm text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
           >
             {t('close')}
           </button>
@@ -126,8 +126,8 @@ function SettingsForm({ user, onSaved }: { user: User; onSaved: () => Promise<vo
   return (
     <Card className="mb-6 p-6">
       <div className="flex items-center gap-3">
-        <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-100 text-lg">🎯</span>
-        <h2 className="text-lg font-bold text-gray-900">{t('settingsTitle')}</h2>
+        <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-100 text-lg dark:bg-emerald-500/15">🎯</span>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">{t('settingsTitle')}</h2>
       </div>
       <form onSubmit={saveSettings} className="mt-5 grid gap-4 sm:grid-cols-2">
         <Field label={t('settingsCalories')}>

@@ -125,8 +125,8 @@ export function FridgeManager({
     <Card className="p-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-100 text-lg">🧊</span>
-          <h2 className="text-lg font-bold text-gray-900">{t('fridgeTitle')}</h2>
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-100 text-lg dark:bg-emerald-500/15">🧊</span>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">{t('fridgeTitle')}</h2>
         </div>
         {hasExpired && (
           <Button variant="danger" onClick={removeExpired}>
@@ -189,35 +189,35 @@ export function FridgeManager({
         </div>
       </form>
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       <div className="mt-5">
         {loading ? (
-          <p className="py-6 text-center text-sm text-gray-400">{t('loading')}</p>
+          <p className="py-6 text-center text-sm text-gray-400 dark:text-slate-500">{t('loading')}</p>
         ) : items.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 py-10 text-center">
+          <div className="rounded-2xl border border-dashed border-gray-300 py-10 text-center dark:border-slate-700">
             <p className="text-3xl">🥕</p>
-            <p className="mt-2 font-medium text-gray-500">{t('fridgeEmpty')}</p>
-            <p className="mt-1 text-sm text-gray-400">{t('fridgeEmptyHint')}</p>
+            <p className="mt-2 font-medium text-gray-500 dark:text-slate-400">{t('fridgeEmpty')}</p>
+            <p className="mt-1 text-sm text-gray-400 dark:text-slate-500">{t('fridgeEmptyHint')}</p>
           </div>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-gray-100 dark:divide-slate-800">
             {items.map((item) => (
               <li key={item.id} className="group flex items-center justify-between py-2.5">
                 <div className="flex items-center gap-3">
-                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-emerald-50 text-sm">
+                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-emerald-50 text-sm dark:bg-emerald-500/15">
                     {iconFor(item.category)}
                   </span>
                   <div>
-                    <p className="font-medium text-gray-800">{item.name}</p>
-                    <p className="text-xs text-gray-400">
+                    <p className="font-medium text-gray-800 dark:text-slate-100">{item.name}</p>
+                    <p className="text-xs text-gray-400 dark:text-slate-500">
                       {item.quantity} {item.unit ?? ''} · {item.category ?? t('general')}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => deleteItem(item.id)}
-                  className="rounded-lg px-2.5 py-1 text-sm text-gray-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+                  className="rounded-lg px-2.5 py-1 text-sm text-gray-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:text-slate-500 dark:hover:bg-red-500/15 dark:hover:text-red-400"
                   aria-label={`${t('delete')} ${item.name}`}
                 >
                   {t('delete')}

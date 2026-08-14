@@ -52,8 +52,8 @@ export default function RegisterPage() {
             priority
             className="mx-auto rounded-2xl shadow-lg shadow-emerald-500/30"
           />
-          <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900">{t('registerTitle')}</h1>
-          <p className="mt-1 text-sm text-gray-500">{t('registerSubtitle')}</p>
+          <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-slate-100">{t('registerTitle')}</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">{t('registerSubtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -89,7 +89,7 @@ export default function RegisterPage() {
           </Field>
 
           {error && (
-            <p className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700">{error}</p>
+            <p className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">{error}</p>
           )}
 
           <Button type="submit" disabled={submitting} className="w-full py-3">
@@ -97,7 +97,7 @@ export default function RegisterPage() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
+        <p className="mt-6 text-center text-sm text-gray-500 dark:text-slate-400">
           {t('haveAccount')}{' '}
           <Link href="/login" className="link">
             {t('goLogin')}

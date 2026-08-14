@@ -78,8 +78,8 @@ export function RecipeSuggestions({
           ✨
         </span>
         <div>
-          <h2 className="text-lg font-bold text-gray-900">{t('suggestionsTitle')}</h2>
-          <p className="mt-0.5 text-sm text-gray-500">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">{t('suggestionsTitle')}</h2>
+          <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400">
             {items.length > 0
               ? t('suggestionsHint', { n: items.length })
               : t('suggestionsEmpty')}
@@ -124,7 +124,7 @@ export function RecipeSuggestions({
                 className={`h-10 w-10 rounded-xl text-sm font-semibold transition-all ${
                   count === n
                     ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
                 }`}
               >
                 {n}
@@ -148,7 +148,7 @@ export function RecipeSuggestions({
       </form>
 
       {error && (
-        <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{error}</p>
+        <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">{error}</p>
       )}
 
       {recipes.length > 0 && (

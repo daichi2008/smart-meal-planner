@@ -11,7 +11,7 @@ export function Footer() {
   const { user } = useAuth()
 
   return (
-    <footer className="border-t border-gray-200/70 bg-white py-10">
+    <footer className="border-t border-gray-200/70 bg-white py-10 dark:border-slate-800 dark:bg-slate-900">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 md:grid-cols-3">
         <div>
           <div className="flex items-center gap-2.5">
@@ -22,22 +22,22 @@ export function Footer() {
               height={32}
               className="rounded-lg"
             />
-            <span className="text-base font-bold text-gray-900">{t('appName')}</span>
+            <span className="text-base font-bold text-gray-900 dark:text-slate-100">{t('appName')}</span>
           </div>
-          <p className="mt-3 max-w-xs text-sm text-gray-500">{t('tagline')}</p>
+          <p className="mt-3 max-w-xs text-sm text-gray-500 dark:text-slate-400">{t('tagline')}</p>
         </div>
 
         <div className="md:text-center">
-          <h3 className="text-sm font-semibold text-gray-900">{t('navPricing')}</h3>
-          <ul className="mt-3 space-y-2 text-sm text-gray-500">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{t('navPricing')}</h3>
+          <ul className="mt-3 space-y-2 text-sm text-gray-500 dark:text-slate-400">
             <li>
-              <Link href="/pricing" className="transition-colors hover:text-emerald-600">
+              <Link href="/pricing" className="transition-colors hover:text-emerald-600 dark:hover:text-emerald-400">
                 {t('pricingTitle')}
               </Link>
             </li>
             {user && (
               <li>
-                <Link href="/saved" className="transition-colors hover:text-emerald-600">
+                <Link href="/saved" className="transition-colors hover:text-emerald-600 dark:hover:text-emerald-400">
                   {t('navSaved')}
                 </Link>
               </li>
@@ -46,12 +46,12 @@ export function Footer() {
         </div>
 
         <div className="md:text-end">
-          <h3 className="text-sm font-semibold text-gray-900">{t('appName')}</h3>
-          <p className="mt-3 text-sm text-gray-500">{t('footer')}</p>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{t('appName')}</h3>
+          <p className="mt-3 text-sm text-gray-500 dark:text-slate-400">{t('footer')}</p>
         </div>
       </div>
 
-      <div className="mx-auto mt-8 max-w-6xl border-t border-gray-100 px-4 pt-6 text-center text-xs text-gray-400">
+      <div className="mx-auto mt-8 max-w-6xl border-t border-gray-100 px-4 pt-6 text-center text-xs text-gray-400 dark:border-slate-800 dark:text-slate-500">
         © {new Date().getFullYear()} {t('appName')}
       </div>
     </footer>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 
@@ -26,9 +27,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="ar"
       dir="rtl"
+      suppressHydrationWarning
       className={`${ibmPlexSansArabic.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-gray-50 text-gray-900">
+      <head>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`(function(){try{var t=window.localStorage.getItem('app_theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark'}}catch(e){}})();`}
+        </Script>
+      </head>
+      <body className="flex min-h-full flex-col bg-background text-foreground">
         <Providers>
           <Navbar />
           <main className="flex-1">{children}</main>

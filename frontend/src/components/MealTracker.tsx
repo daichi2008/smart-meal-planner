@@ -103,10 +103,10 @@ export function MealTracker() {
           🍽️
         </span>
         <div>
-          <h2 className="text-lg font-bold text-gray-900">{t('trackerTitle')}</h2>
-          <p className="mt-0.5 text-sm text-gray-500">{t('trackerHint')}</p>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">{t('trackerTitle')}</h2>
+          <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400">{t('trackerHint')}</p>
         </div>
-        <span className="ms-auto hidden text-sm font-semibold text-gray-400 sm:block">
+        <span className="ms-auto hidden text-sm font-semibold text-gray-400 sm:block dark:text-slate-500">
           {new Intl.DateTimeFormat(lang === 'ar' ? 'ar' : 'en', {
             weekday: 'long',
             day: 'numeric',
@@ -116,30 +116,30 @@ export function MealTracker() {
       </div>
 
       {error && (
-        <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700">{error}</p>
+        <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">{error}</p>
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-10 text-gray-400">
+        <div className="flex items-center justify-center gap-2 py-10 text-gray-400 dark:text-slate-500">
           <Spinner /> <span>{t('loading')}</span>
         </div>
       ) : (
         <>
-          <div className="mt-5 rounded-2xl bg-gray-50/80 p-4">
+          <div className="mt-5 rounded-2xl bg-gray-50/80 p-4 dark:bg-slate-800/60">
             {target ? (
               <>
                 <div className="flex items-end justify-between">
                   <div>
-                    <p className="text-3xl font-bold tracking-tight text-gray-900">
+                    <p className="text-3xl font-bold tracking-tight text-gray-900 dark:text-slate-100">
                       {Math.round(consumed).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-slate-400">
                       {t('consumed')} · {t('target')}: {target.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')}
                     </p>
                   </div>
                   <p
                     className={`text-sm font-semibold ${
-                      over ? 'text-red-600' : remaining != null && remaining < 300 ? 'text-amber-600' : 'text-emerald-600'
+                      over ? 'text-red-600 dark:text-red-400' : remaining != null && remaining < 300 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
                     }`}
                   >
                     {over
@@ -149,7 +149,7 @@ export function MealTracker() {
                         : ''}
                   </p>
                 </div>
-                <div className="mt-3 h-3 overflow-hidden rounded-full bg-gray-200">
+                <div className="mt-3 h-3 overflow-hidden rounded-full bg-gray-200 dark:bg-slate-700">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       over
@@ -163,7 +163,7 @@ export function MealTracker() {
                 </div>
               </>
             ) : (
-              <p className="text-sm text-gray-500">🎯 {t('targetNotSet')}</p>
+              <p className="text-sm text-gray-500 dark:text-slate-400">🎯 {t('targetNotSet')}</p>
             )}
           </div>
 
@@ -211,22 +211,22 @@ export function MealTracker() {
 
           <div className="mt-5">
             {meals.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-gray-300 py-8 text-center">
+              <div className="rounded-2xl border border-dashed border-gray-300 py-8 text-center dark:border-slate-700">
                 <p className="text-2xl">🫙</p>
-                <p className="mt-2 font-medium text-gray-500">{t('todayEmpty')}</p>
-                <p className="mt-1 px-6 text-sm text-gray-400">{t('todayEmptyHint')}</p>
+                <p className="mt-2 font-medium text-gray-500 dark:text-slate-400">{t('todayEmpty')}</p>
+                <p className="mt-1 px-6 text-sm text-gray-400 dark:text-slate-500">{t('todayEmptyHint')}</p>
               </div>
             ) : (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-gray-100 dark:divide-slate-800">
                 {meals.map((meal) => (
                   <li key={meal.id} className="group flex items-center justify-between py-2.5">
                     <div className="flex items-center gap-3">
-                      <span className="grid h-9 w-9 place-items-center rounded-lg bg-orange-50 text-base">
+                      <span className="grid h-9 w-9 place-items-center rounded-lg bg-orange-50 text-base dark:bg-orange-500/15">
                         {MEAL_ICONS[meal.meal_type ?? ''] ?? '🍽️'}
                       </span>
                       <div>
-                        <p className="font-medium text-gray-800">{meal.title}</p>
-                        <p className="text-xs text-gray-400">
+                        <p className="font-medium text-gray-800 dark:text-slate-100">{meal.title}</p>
+                        <p className="text-xs text-gray-400 dark:text-slate-500">
                           {mealLabel(meal.meal_type)}
                           {meal.calories != null ? ` · ${Math.round(meal.calories)} ${t('caloriesShort')}` : ''}
                         </p>
@@ -234,7 +234,7 @@ export function MealTracker() {
                     </div>
                     <button
                       onClick={() => removeMeal(meal.id)}
-                      className="rounded-lg px-2.5 py-1 text-sm text-gray-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+                      className="rounded-lg px-2.5 py-1 text-sm text-gray-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:text-slate-500 dark:hover:bg-red-500/15 dark:hover:text-red-400"
                       aria-label={t('deleteMeal')}
                     >
                       {t('delete')}
@@ -246,12 +246,12 @@ export function MealTracker() {
           </div>
 
           {summary && (
-            <div className="mt-6 border-t border-gray-100 pt-5">
+            <div className="mt-6 border-t border-gray-100 pt-5 dark:border-slate-800">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-gray-800">{t('weekTitle')}</h3>
-                <p className="text-xs text-gray-500">
+                <h3 className="text-sm font-bold text-gray-800 dark:text-slate-100">{t('weekTitle')}</h3>
+                <p className="text-xs text-gray-500 dark:text-slate-400">
                   {t('weekAverage')}:{' '}
-                  <span className="font-semibold text-gray-700">
+                  <span className="font-semibold text-gray-700 dark:text-slate-300">
                     {Math.round(summary.average_calories).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')}
                   </span>
                 </p>
@@ -270,11 +270,11 @@ export function MealTracker() {
                             ? 'bg-gradient-to-t from-emerald-600 to-teal-400'
                             : d.calories > 0
                               ? 'bg-gradient-to-t from-emerald-500 to-emerald-300'
-                              : 'bg-gray-200'
+                              : 'bg-gray-200 dark:bg-slate-700'
                         }`}
                         style={{ height: `${height}%` }}
                       />
-                      <p className={`mt-1 text-center text-[10px] ${isToday ? 'font-bold text-emerald-700' : 'text-gray-400'}`}>
+                      <p className={`mt-1 text-center text-[10px] ${isToday ? 'font-bold text-emerald-700 dark:text-emerald-400' : 'text-gray-400 dark:text-slate-500'}`}>
                         {dayDate.getDate()}
                       </p>
                     </div>
@@ -285,8 +285,8 @@ export function MealTracker() {
           )}
 
           {stats && (
-            <div className="mt-6 border-t border-gray-100 pt-5">
-              <h3 className="text-sm font-bold text-gray-800">{t('statsTitle')}</h3>
+            <div className="mt-6 border-t border-gray-100 pt-5 dark:border-slate-800">
+              <h3 className="text-sm font-bold text-gray-800 dark:text-slate-100">{t('statsTitle')}</h3>
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {[
                   { icon: '🧊', value: stats.fridge_count, label: t('statFridge') },
@@ -294,10 +294,10 @@ export function MealTracker() {
                   { icon: '🔥', value: stats.streak_days, label: t('statStreak') },
                   { icon: '✨', value: stats.suggestions_used_today, label: t('statSuggestions') },
                 ].map((s) => (
-                  <div key={s.label} className="rounded-2xl bg-gray-50/80 p-3 text-center">
+                  <div key={s.label} className="rounded-2xl bg-gray-50/80 p-3 text-center dark:bg-slate-800/60">
                     <p className="text-lg">{s.icon}</p>
-                    <p className="mt-1 text-xl font-bold tracking-tight text-gray-900">{s.value}</p>
-                    <p className="text-[11px] leading-tight text-gray-500">{s.label}</p>
+                    <p className="mt-1 text-xl font-bold tracking-tight text-gray-900 dark:text-slate-100">{s.value}</p>
+                    <p className="text-[11px] leading-tight text-gray-500 dark:text-slate-400">{s.label}</p>
                   </div>
                 ))}
               </div>
