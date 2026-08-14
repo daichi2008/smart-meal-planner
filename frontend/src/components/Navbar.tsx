@@ -47,7 +47,7 @@ export function Navbar() {
             width={36}
             height={36}
             priority
-            className="rounded-xl shadow-md shadow-emerald-500/30"
+            className="rounded-xl shadow-md shadow-emerald-500/30 transition-transform duration-300 ease-out hover:rotate-3 hover:scale-110"
           />
           <span className="text-lg font-bold tracking-tight text-gray-900">{t('appName')}</span>
         </Link>
