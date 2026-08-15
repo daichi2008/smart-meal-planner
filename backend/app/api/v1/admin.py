@@ -7,7 +7,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from fastapi.responses import JSONResponse
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -15,7 +15,7 @@ from app.core.database import get_db
 from app.models.fridge import FridgeItem
 from app.models.meal import MealLog
 from app.models.recipe import RecipeCache, SavedRecipe
-from app.models.subscription import Subscription, SubscriptionStatus
+from app.models.subscription import Subscription
 from app.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -34,6 +34,14 @@ def _verify_admin_code(x_admin_code: str | None) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Forbidden",
         )
+
+
+def _fmt_dt(value) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return str(value)
 
 
 @router.get("/overview", response_model=None)
@@ -73,9 +81,15 @@ async def admin_overview(
             await db.execute(select(User).order_by(User.created_at.desc()))
         ).scalars().all()
 
-        subscriptions = (
-            await db.execute(select(Subscription).order_by(Subscription.created_at.desc()))
-        ).scalars().all()
+        subscription_rows = (
+            await db.execute(
+                text(
+                    "SELECT id, user_id, amount_usd, status, current_period_end, "
+                    "cancel_at_period_end, created_at FROM subscriptions "
+                    "ORDER BY created_at DESC"
+                )
+            )
+        ).all()
 
         recent_meals = (
             await db.execute(select(MealLog).order_by(MealLog.created_at.desc()).limit(20))
@@ -95,18 +109,14 @@ async def admin_overview(
 
     email_by_id = {u.id: u.email for u in users}
 
-    active_statuses = {
-        SubscriptionStatus.ACTIVE,
-        SubscriptionStatus.TRIALING,
-        SubscriptionStatus.PAST_DUE,
-    }
+    active_statuses = {"active", "trialing", "past_due"}
 
     return {
         "generated_at": datetime.utcnow().isoformat(),
         "summary": {
             "total_users": total_users,
             "total_subscriptions": total_subscriptions,
-            "active_subscriptions": sum(1 for s in subscriptions if s.status in active_statuses),
+            "active_subscriptions": sum(1 for r in subscription_rows if str(r.status).lower() in active_statuses),
             "total_saved_recipes": total_saved,
             "total_meals": total_meals,
             "recent_suggestions_7d": recent_suggestions,
@@ -126,16 +136,14 @@ async def admin_overview(
         ],
         "subscriptions": [
             {
-                "email": email_by_id.get(s.user_id, "?"),
-                "amount_usd": s.amount_usd,
-                "status": s.status.value,
-                "cancel_at_period_end": s.cancel_at_period_end,
-                "current_period_end": (
-                    s.current_period_end.isoformat() if s.current_period_end else None
-                ),
-                "created_at": s.created_at.isoformat(),
+                "email": email_by_id.get(r.user_id, "?"),
+                "amount_usd": r.amount_usd,
+                "status": str(r.status).lower(),
+                "cancel_at_period_end": bool(r.cancel_at_period_end),
+                "current_period_end": _fmt_dt(r.current_period_end),
+                "created_at": _fmt_dt(r.created_at),
             }
-            for s in subscriptions
+            for r in subscription_rows
         ],
         "recent_meals": [
             {
