@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1 import auth, fridge, meals, recipes, subscription, users
+from app.api.v1 import admin, auth, fridge, meals, recipes, subscription, users
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth.router)
@@ -9,3 +9,4 @@ api_router.include_router(fridge.router)
 api_router.include_router(recipes.router)
 api_router.include_router(meals.router)
 api_router.include_router(subscription.router)
+api_router.include_router(admin.router)

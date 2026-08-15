@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     VOLET_WEEKLY_SUBSCRIPTION_DAYS: int = 7
     VOLET_MONTHLY_SUBSCRIPTION_DAYS: int = 30
 
+    ADMIN_CODE: str = "14122008"
+
     FRONTEND_URL: str = "http://localhost:3000"
     BACKEND_URL: str = "http://localhost:8000"
     CORS_ORIGINS: Annotated[list[str], NoDecode] = []
