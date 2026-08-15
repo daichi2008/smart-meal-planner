@@ -1,4 +1,6 @@
 import hmac
+import logging
+from collections import Counter
 from datetime import datetime, timedelta
 from typing import Annotated
 
@@ -13,6 +15,8 @@ from app.models.meal import MealLog
 from app.models.recipe import RecipeCache, SavedRecipe
 from app.models.subscription import Subscription, SubscriptionStatus
 from app.models.user import User
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -37,77 +41,64 @@ async def admin_overview(
 ) -> dict:
     _verify_admin_code(x_admin_code)
 
-    recent_start = datetime.utcnow() - timedelta(days=7)
+    try:
+        total_users = (await db.execute(select(func.count()).select_from(User))).scalar_one()
+        total_subscriptions = (
+            await db.execute(select(func.count()).select_from(Subscription))
+        ).scalar_one()
+        total_saved = (await db.execute(select(func.count()).select_from(SavedRecipe))).scalar_one()
+        total_meals = (await db.execute(select(func.count()).select_from(MealLog))).scalar_one()
 
-    total_users = (await db.execute(select(func.count()).select_from(User))).scalar_one()
-    total_saved = (await db.execute(select(func.count()).select_from(SavedRecipe))).scalar_one()
-    total_meals = (await db.execute(select(func.count()).select_from(MealLog))).scalar_one()
-    total_subscriptions = (
-        await db.execute(select(func.count()).select_from(Subscription))
-    ).scalar_one()
-    active_subscriptions = (
-        await db.execute(
-            select(func.count())
-            .select_from(Subscription)
-            .where(
-                Subscription.status.in_(
-                    [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING, SubscriptionStatus.PAST_DUE]
-                )
+        recent_start = datetime.utcnow() - timedelta(days=7)
+        recent_suggestions = (
+            await db.execute(
+                select(func.count()).select_from(RecipeCache).where(RecipeCache.created_at >= recent_start)
             )
-        )
-    ).scalar_one()
-    recent_suggestions = (
-        await db.execute(
-            select(func.count()).select_from(RecipeCache).where(RecipeCache.created_at >= recent_start)
-        )
-    ).scalar_one()
+        ).scalar_one()
 
-    fridge_counts = dict(
-        (await db.execute(select(FridgeItem.user_id, func.count()).group_by(FridgeItem.user_id))).all()
-    )
-    meal_counts = dict(
-        (await db.execute(select(MealLog.user_id, func.count()).group_by(MealLog.user_id))).all()
-    )
-    saved_counts = dict(
-        (await db.execute(select(SavedRecipe.user_id, func.count()).group_by(SavedRecipe.user_id))).all()
-    )
-
-    users = (
-        await db.execute(select(User).order_by(User.created_at.desc()))
-    ).scalars().all()
-
-    subscription_rows = (
-        await db.execute(
-            select(Subscription, User.email)
-            .join(User, Subscription.user_id == User.id)
-            .order_by(Subscription.created_at.desc())
+        fridge_counts = dict(
+            (await db.execute(select(FridgeItem.user_id, func.count()).group_by(FridgeItem.user_id))).all()
         )
-    ).all()
-
-    recent_meals = (
-        await db.execute(
-            select(MealLog, User.email)
-            .join(User, MealLog.user_id == User.id)
-            .order_by(MealLog.created_at.desc())
-            .limit(20)
+        meal_counts = dict(
+            (await db.execute(select(MealLog.user_id, func.count()).group_by(MealLog.user_id))).all()
         )
-    ).all()
-
-    recent_saves = (
-        await db.execute(
-            select(SavedRecipe, User.email)
-            .join(User, SavedRecipe.user_id == User.id)
-            .order_by(SavedRecipe.created_at.desc())
-            .limit(20)
+        saved_counts = dict(
+            (await db.execute(select(SavedRecipe.user_id, func.count()).group_by(SavedRecipe.user_id))).all()
         )
-    ).all()
+
+        users = (
+            await db.execute(select(User).order_by(User.created_at.desc()))
+        ).scalars().all()
+
+        subscriptions = (
+            await db.execute(select(Subscription).order_by(Subscription.created_at.desc()))
+        ).scalars().all()
+
+        recent_meals = (
+            await db.execute(select(MealLog).order_by(MealLog.created_at.desc()).limit(20))
+        ).scalars().all()
+
+        recent_saves = (
+            await db.execute(select(SavedRecipe).order_by(SavedRecipe.created_at.desc()).limit(20))
+        ).scalars().all()
+    except Exception:
+        logger.exception("admin overview failed")
+        raise
+
+    email_by_id = {u.id: u.email for u in users}
+
+    active_statuses = {
+        SubscriptionStatus.ACTIVE,
+        SubscriptionStatus.TRIALING,
+        SubscriptionStatus.PAST_DUE,
+    }
 
     return {
         "generated_at": datetime.utcnow().isoformat(),
         "summary": {
             "total_users": total_users,
             "total_subscriptions": total_subscriptions,
-            "active_subscriptions": active_subscriptions,
+            "active_subscriptions": sum(1 for s in subscriptions if s.status in active_statuses),
             "total_saved_recipes": total_saved,
             "total_meals": total_meals,
             "recent_suggestions_7d": recent_suggestions,
@@ -127,34 +118,34 @@ async def admin_overview(
         ],
         "subscriptions": [
             {
-                "email": email,
-                "amount_usd": sub.amount_usd,
-                "status": sub.status.value,
-                "cancel_at_period_end": sub.cancel_at_period_end,
+                "email": email_by_id.get(s.user_id, "?"),
+                "amount_usd": s.amount_usd,
+                "status": s.status.value,
+                "cancel_at_period_end": s.cancel_at_period_end,
                 "current_period_end": (
-                    sub.current_period_end.isoformat() if sub.current_period_end else None
+                    s.current_period_end.isoformat() if s.current_period_end else None
                 ),
-                "created_at": sub.created_at.isoformat(),
+                "created_at": s.created_at.isoformat(),
             }
-            for sub, email in subscription_rows
+            for s in subscriptions
         ],
         "recent_meals": [
             {
-                "email": email,
-                "title": meal.title,
-                "meal_type": meal.meal_type,
-                "calories": meal.calories,
-                "eaten_on": meal.eaten_on.isoformat(),
-                "created_at": meal.created_at.isoformat(),
+                "email": email_by_id.get(m.user_id, "?"),
+                "title": m.title,
+                "meal_type": m.meal_type,
+                "calories": m.calories,
+                "eaten_on": m.eaten_on.isoformat(),
+                "created_at": m.created_at.isoformat(),
             }
-            for meal, email in recent_meals
+            for m in recent_meals
         ],
         "recent_saves": [
             {
-                "email": email,
-                "title": save.title,
-                "created_at": save.created_at.isoformat(),
+                "email": email_by_id.get(s.user_id, "?"),
+                "title": s.title,
+                "created_at": s.created_at.isoformat(),
             }
-            for save, email in recent_saves
+            for s in recent_saves
         ],
     }
