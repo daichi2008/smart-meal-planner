@@ -1,10 +1,12 @@
 import hmac
 import logging
+import traceback
 from collections import Counter
 from datetime import datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,11 +36,12 @@ def _verify_admin_code(x_admin_code: str | None) -> None:
         )
 
 
-@router.get("/overview")
+@router.get("/overview", response_model=None)
 async def admin_overview(
     db: Db,
     x_admin_code: Annotated[str | None, Header(alias=ADMIN_CODE_HEADER)] = None,
-) -> dict:
+    debug: Annotated[int, Query()] = 0,
+):
     _verify_admin_code(x_admin_code)
 
     try:
@@ -81,8 +84,13 @@ async def admin_overview(
         recent_saves = (
             await db.execute(select(SavedRecipe).order_by(SavedRecipe.created_at.desc()).limit(20))
         ).scalars().all()
-    except Exception:
+    except Exception as exc:
         logger.exception("admin overview failed")
+        if debug:
+            return JSONResponse(
+                status_code=500,
+                content={"error": f"{type(exc).__name__}: {exc}", "traceback": traceback.format_exc()},
+            )
         raise
 
     email_by_id = {u.id: u.email for u in users}
