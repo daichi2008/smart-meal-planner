@@ -43,6 +43,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = lang
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'
     window.localStorage.setItem(STORAGE_KEY, lang)
+    const dict = dictionaries[lang]
+    document.title = dict.metaTitle
+    const desc = document.querySelector('meta[name="description"]')
+    if (desc) desc.setAttribute('content', dict.metaDescription)
   }, [lang])
 
   const toggleLang = useCallback(() => {

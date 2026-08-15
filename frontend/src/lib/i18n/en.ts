@@ -4,6 +4,9 @@ export const en = {
   tagline: 'Healthy recipes from your fridge',
   footer: 'My Smart Kitchen — healthy recipes from your fridge',
   langToggle: 'العربية',
+  metaTitle: 'My Smart Kitchen | Smart Meal Planner',
+  metaDescription:
+    'Enter your fridge ingredients and get instant healthy recipes matched to your daily calorie goal.',
 
   // Navbar
   navHome: 'Home',
