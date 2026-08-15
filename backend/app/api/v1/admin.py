@@ -1,7 +1,6 @@
 import hmac
 import logging
 import traceback
-from collections import Counter
 from datetime import datetime, timedelta
 from typing import Annotated
 
@@ -52,71 +51,119 @@ async def admin_overview(
 ):
     _verify_admin_code(x_admin_code)
 
-    try:
-        total_users = (await db.execute(select(func.count()).select_from(User))).scalar_one()
-        total_subscriptions = (
-            await db.execute(select(func.count()).select_from(Subscription))
-        ).scalar_one()
-        total_saved = (await db.execute(select(func.count()).select_from(SavedRecipe))).scalar_one()
-        total_meals = (await db.execute(select(func.count()).select_from(MealLog))).scalar_one()
+    warnings: list[str] = []
 
-        recent_start = datetime.utcnow() - timedelta(days=7)
+    async def count_rows(model) -> int:
+        try:
+            return (await db.execute(select(func.count()).select_from(model))).scalar_one()
+        except Exception as exc:
+            warnings.append(f"{model.__tablename__} count: {exc}")
+            return 0
+
+    total_users = await count_rows(User)
+    total_subscriptions = await count_rows(Subscription)
+    total_saved = await count_rows(SavedRecipe)
+    total_meals = await count_rows(MealLog)
+
+    recent_start = datetime.utcnow() - timedelta(days=7)
+    try:
         recent_suggestions = (
             await db.execute(
                 select(func.count()).select_from(RecipeCache).where(RecipeCache.created_at >= recent_start)
             )
         ).scalar_one()
+    except Exception as exc:
+        warnings.append(f"recent suggestions: {exc}")
+        recent_suggestions = 0
 
-        fridge_counts = dict(
-            (await db.execute(select(FridgeItem.user_id, func.count()).group_by(FridgeItem.user_id))).all()
-        )
-        meal_counts = dict(
-            (await db.execute(select(MealLog.user_id, func.count()).group_by(MealLog.user_id))).all()
-        )
-        saved_counts = dict(
-            (await db.execute(select(SavedRecipe.user_id, func.count()).group_by(SavedRecipe.user_id))).all()
-        )
+    async def group_counts(model) -> dict[str, int]:
+        try:
+            result = await db.execute(
+                select(model.user_id, func.count()).group_by(model.user_id)
+            )
+            return dict(result.all())
+        except Exception as exc:
+            warnings.append(f"{model.__tablename__} group counts: {exc}")
+            return {}
 
+    fridge_counts = await group_counts(FridgeItem)
+    meal_counts = await group_counts(MealLog)
+    saved_counts = await group_counts(SavedRecipe)
+
+    try:
         users = (
             await db.execute(select(User).order_by(User.created_at.desc()))
         ).scalars().all()
+    except Exception as exc:
+        warnings.append(f"users: {exc}")
+        users = []
 
-        subscription_rows = (
+    async def _table_columns(table: str) -> set[str]:
+        if db.bind.dialect.name == "sqlite":
+            rows = (await db.execute(text(f'PRAGMA table_info("{table}")'))).all()
+            return {r[1] for r in rows}
+        rows = (
             await db.execute(
                 text(
-                    "SELECT id, user_id, amount_usd, status, current_period_end, "
-                    "cancel_at_period_end, created_at FROM subscriptions "
-                    "ORDER BY created_at DESC"
-                )
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = :t"
+                ),
+                {"t": table},
             )
         ).all()
+        return {r[0] for r in rows}
 
+    try:
+        avail = await _table_columns("subscriptions")
+        wanted = [
+            "id",
+            "user_id",
+            "amount_usd",
+            "status",
+            "current_period_end",
+            "cancel_at_period_end",
+            "created_at",
+        ]
+        use_cols = [c for c in wanted if c in avail]
+        col_sql = ", ".join(f'"{c}"' for c in use_cols)
+        sub_rows = (
+            await db.execute(text(f'SELECT {col_sql} FROM subscriptions ORDER BY created_at DESC'))
+        ).all()
+    except Exception as exc:
+        warnings.append(f"subscriptions: {exc}")
+        sub_rows = []
+        use_cols = []
+
+    try:
         recent_meals = (
             await db.execute(select(MealLog).order_by(MealLog.created_at.desc()).limit(20))
         ).scalars().all()
+    except Exception as exc:
+        warnings.append(f"recent meals: {exc}")
+        recent_meals = []
 
+    try:
         recent_saves = (
             await db.execute(select(SavedRecipe).order_by(SavedRecipe.created_at.desc()).limit(20))
         ).scalars().all()
     except Exception as exc:
-        logger.exception("admin overview failed")
-        if debug:
-            return JSONResponse(
-                status_code=500,
-                content={"error": f"{type(exc).__name__}: {exc}", "traceback": traceback.format_exc()},
-            )
-        raise
+        warnings.append(f"recent saves: {exc}")
+        recent_saves = []
 
     email_by_id = {u.id: u.email for u in users}
-
     active_statuses = {"active", "trialing", "past_due"}
 
     return {
         "generated_at": datetime.utcnow().isoformat(),
+        "warnings": warnings,
         "summary": {
             "total_users": total_users,
             "total_subscriptions": total_subscriptions,
-            "active_subscriptions": sum(1 for r in subscription_rows if str(r.status).lower() in active_statuses),
+            "active_subscriptions": sum(
+                1
+                for r in sub_rows
+                if "status" in use_cols and str(r.status).lower() in active_statuses
+            ),
             "total_saved_recipes": total_saved,
             "total_meals": total_meals,
             "recent_suggestions_7d": recent_suggestions,
@@ -137,13 +184,17 @@ async def admin_overview(
         "subscriptions": [
             {
                 "email": email_by_id.get(r.user_id, "?"),
-                "amount_usd": r.amount_usd,
-                "status": str(r.status).lower(),
-                "cancel_at_period_end": bool(r.cancel_at_period_end),
-                "current_period_end": _fmt_dt(r.current_period_end),
-                "created_at": _fmt_dt(r.created_at),
+                "amount_usd": r.amount_usd if "amount_usd" in use_cols else None,
+                "status": str(r.status).lower() if "status" in use_cols else "unknown",
+                "cancel_at_period_end": (
+                    bool(r.cancel_at_period_end) if "cancel_at_period_end" in use_cols else False
+                ),
+                "current_period_end": (
+                    _fmt_dt(r.current_period_end) if "current_period_end" in use_cols else None
+                ),
+                "created_at": _fmt_dt(r.created_at) if "created_at" in use_cols else None,
             }
-            for r in subscription_rows
+            for r in sub_rows
         ],
         "recent_meals": [
             {
