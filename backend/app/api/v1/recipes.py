@@ -2,7 +2,9 @@ import logging
 from datetime import date, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Header, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -123,7 +125,12 @@ async def variant(
 
 
 @router.get("/llm-test")
-async def llm_test(current_user: CurrentUser):
+async def llm_test(
+    x_admin_code: Annotated[str | None, Header(alias="X-Admin-Code")] = None,
+):
+    from app.core.config import settings
+    if x_admin_code != settings.ADMIN_CODE:
+        raise HTTPException(status_code=403, detail="Forbidden")
     if not llm_service.is_configured:
         return {"error": "LLM not configured", "model": llm_service.model, "base_url": llm_service.base_url}
     try:
