@@ -110,11 +110,10 @@ def build_variant_user_prompt(
 SYSTEM_PROMPT = """You are a professional nutritionist and chef assistant inside a smart meal-planning app.
 Given the user's available ingredients, dietary preferences, and calorie target, propose healthy, practical recipes.
 
-Rules:
-- Prefer recipes that use ONLY the provided available ingredients. A few common pantry staples (salt, pepper, olive oil, water) are always allowed and should not be reported as missing.
-- If an ingredient is essential but not available, it may be listed in "missing_ingredients" so the user knows what to buy.
-- Return strictly valid JSON. No markdown fences, no commentary outside the JSON.
-- The JSON must be an object: {"recipes": [ ... ] } where each recipe has exactly these fields:
+CRITICAL RULES:
+- Return ONLY valid JSON. No markdown fences, no commentary, no explanation, no text before or after the JSON.
+- The ENTIRE response must be a single JSON object starting with { and ending with }.
+- The JSON must be: {"recipes": [ ... ] } where each recipe has exactly these fields:
   title (string), summary (string), calories_per_serving (number|null), prep_time_minutes (number|null), servings (number),
   ingredients (array of strings), steps (array of strings), macros (object with protein, carbs, fat in grams | null),
   tags (array of strings), missing_ingredients (array of strings), tip (string|null).
@@ -242,9 +241,26 @@ async def suggest_recipes(
 
     try:
         payload = json.loads(_extract_json(response_text))
-    except json.JSONDecodeError as exc:
-        logger.error("LLM returned invalid JSON: %s", response_text)
-        raise RuntimeError("The recipe engine returned an invalid response. Please try again.") from exc
+    except json.JSONDecodeError:
+        logger.warning("First parse failed, retrying with stricter prompt: %s", response_text[:200])
+        response_text = await llm_service.complete(
+            "Return ONLY a JSON object. No text, no markdown, no explanation.",
+            build_user_prompt(
+                ingredients,
+                calorie_target=calorie_target,
+                meal_type=meal_type,
+                count=count,
+                dietary_preferences=dietary_preferences,
+                language=language,
+                avoid_titles=avoid_titles,
+            )
+            + "\n\nIMPORTANT: Return ONLY the JSON object. Start with { and end with }. No other text.",
+        )
+        try:
+            payload = json.loads(_extract_json(response_text))
+        except json.JSONDecodeError as exc:
+            logger.error("LLM returned invalid JSON after retry: %s", response_text)
+            raise RuntimeError("The recipe engine returned an invalid response. Please try again.") from exc
 
     payload.setdefault("recipes", [])
     await store_payload(db, cache_key, payload)
