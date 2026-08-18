@@ -13,6 +13,20 @@ from app.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
+
+def _extract_json(text: str) -> str:
+    """Strip markdown fences and extract raw JSON from LLM output."""
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        lines = cleaned.splitlines()
+        lines = [l for l in lines if not l.strip().startswith("```")]
+        cleaned = "\n".join(lines).strip()
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        return cleaned[start : end + 1]
+    return cleaned
+
 VARIANT_SYSTEM_PROMPT = """You are a professional nutritionist and chef assistant.
 The user will give you an existing recipe and ask you to modify it according to a specific variation.
 
@@ -227,7 +241,7 @@ async def suggest_recipes(
     )
 
     try:
-        payload = json.loads(response_text)
+        payload = json.loads(_extract_json(response_text))
     except json.JSONDecodeError as exc:
         logger.error("LLM returned invalid JSON: %s", response_text)
         raise RuntimeError("The recipe engine returned an invalid response. Please try again.") from exc
@@ -257,7 +271,7 @@ async def generate_variant(
     )
 
     try:
-        payload = json.loads(response_text)
+        payload = json.loads(_extract_json(response_text))
     except json.JSONDecodeError as exc:
         logger.error("LLM returned invalid JSON for variant: %s", response_text)
         raise RuntimeError("The recipe engine returned an invalid response. Please try again.") from exc
