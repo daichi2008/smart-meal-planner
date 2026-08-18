@@ -39,7 +39,7 @@ class LLMService:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            "reasoning_effort": "low",
+            "reasoning_effort": "none",
         }
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
