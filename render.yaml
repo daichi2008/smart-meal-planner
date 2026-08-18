@@ -21,7 +21,7 @@ services:
       - key: LLM_BASE_URL
         value: https://api.groq.com/openai/v1
       - key: LLM_MODEL
-        value: qwen/qwen3.6-27b
+        value: openai/gpt-oss-20b
       - key: FRONTEND_URL
         value: https://smart-meal-planner-seven.vercel.app
       - key: BACKEND_URL

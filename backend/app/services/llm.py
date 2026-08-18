@@ -26,23 +26,28 @@ class LLMService:
         *,
         temperature: float = 0.7,
         max_tokens: int = 2000,
+        json_mode: bool = False,
     ) -> str:
         if not self.is_configured:
             raise RuntimeError("LLM_API_KEY is not configured")
+
+        payload: dict = {
+            "model": self.model,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        }
+        if json_mode:
+            payload["response_format"] = {"type": "json_object"}
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(
                 f"{self.base_url}/chat/completions",
                 headers={"Authorization": f"Bearer {self.api_key}"},
-                json={
-                    "model": self.model,
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                },
+                json=payload,
             )
             if resp.status_code >= 400:
                 error_message = self._friendly_error(resp)
