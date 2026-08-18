@@ -17,6 +17,8 @@ from app.models.recipe import RecipeCache, SavedRecipe
 from app.models.subscription import Subscription
 from app.models.user import User
 
+from app.services.llm import llm_service
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -239,3 +241,20 @@ async def toggle_unlimited(
         "email": user.email,
         "unlimited_suggestions": user.unlimited_suggestions,
     }
+
+
+@router.get("/llm-test")
+async def llm_test(
+    x_admin_code: Annotated[str | None, Header(alias=ADMIN_CODE_HEADER)] = None,
+):
+    _verify_admin_code(x_admin_code)
+    if not llm_service.is_configured:
+        return {"error": "LLM not configured", "model": llm_service.model, "base_url": llm_service.base_url}
+    try:
+        raw = await llm_service.complete(
+            "You are a helpful assistant. Return ONLY valid JSON.",
+            'Return a JSON object with key "message" and value "hello". No other text.',
+        )
+        return {"model": llm_service.model, "raw_response": raw, "is_json": raw.strip().startswith("{")}
+    except Exception as e:
+        return {"error": str(e), "model": llm_service.model}
