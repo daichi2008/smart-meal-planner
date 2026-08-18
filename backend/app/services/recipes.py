@@ -15,8 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 def _extract_json(text: str) -> str:
-    """Strip markdown fences and extract raw JSON from LLM output."""
+    """Strip markdown fences, thinking tags, and extract raw JSON from LLM output."""
+    import re
+
     cleaned = text.strip()
+    cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL)
     if cleaned.startswith("```"):
         lines = cleaned.splitlines()
         lines = [l for l in lines if not l.strip().startswith("```")]
