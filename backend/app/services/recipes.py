@@ -238,7 +238,6 @@ async def suggest_recipes(
             language=language,
             avoid_titles=avoid_titles,
         ),
-        json_mode=True,
     )
 
     try:
@@ -269,7 +268,6 @@ async def generate_variant(
         build_variant_user_prompt(recipe_dict, variation, language=language),
         temperature=0.7,
         max_tokens=2000,
-        json_mode=True,
     )
 
     try:
