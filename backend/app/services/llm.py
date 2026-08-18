@@ -25,7 +25,7 @@ class LLMService:
         user_prompt: str,
         *,
         temperature: float = 0.7,
-        max_tokens: int = 2000,
+        max_tokens: int = 4096,
         json_mode: bool = False,
     ) -> str:
         if not self.is_configured:
@@ -39,11 +39,12 @@ class LLMService:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
+            "reasoning_effort": "low",
         }
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.post(
                 f"{self.base_url}/chat/completions",
                 headers={"Authorization": f"Bearer {self.api_key}"},

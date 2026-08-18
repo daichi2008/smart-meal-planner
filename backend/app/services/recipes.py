@@ -39,6 +39,7 @@ Rules:
 - Maintain nutritional accuracy — recalculate calories and macros if ingredients change significantly.
 - Keep pantry staples (salt, pepper, olive oil) as needed.
 - Return strictly valid JSON. No markdown fences, no commentary outside the JSON.
+- Do NOT include any thinking or reasoning in your response. Output the JSON directly.
 - The JSON must be a single object (NOT wrapped in an array or "recipes" key) with exactly these fields:
   title (string), summary (string), calories_per_serving (number|null), prep_time_minutes (number|null), servings (number),
   ingredients (array of strings), steps (array of strings), macros (object with protein, carbs, fat in grams | null),
@@ -116,6 +117,7 @@ Given the user's available ingredients, dietary preferences, and calorie target,
 CRITICAL RULES:
 - Return ONLY valid JSON. No markdown fences, no commentary, no explanation, no text before or after the JSON.
 - The ENTIRE response must be a single JSON object starting with { and ending with }.
+- Do NOT include any thinking or reasoning in your response. Output the JSON directly.
 - The JSON must be: {"recipes": [ ... ] } where each recipe has exactly these fields:
   title (string), summary (string), calories_per_serving (number|null), prep_time_minutes (number|null), servings (number),
   ingredients (array of strings), steps (array of strings), macros (object with protein, carbs, fat in grams | null),
@@ -247,7 +249,7 @@ async def suggest_recipes(
     except json.JSONDecodeError:
         logger.warning("First parse failed, retrying with stricter prompt: %s", response_text[:200])
         response_text = await llm_service.complete(
-            "Return ONLY a JSON object. No text, no markdown, no explanation.",
+            "Return ONLY a JSON object. No thinking, no text, no markdown, no explanation. Start with { and end with }.",
             build_user_prompt(
                 ingredients,
                 calorie_target=calorie_target,
@@ -286,7 +288,7 @@ async def generate_variant(
         VARIANT_SYSTEM_PROMPT,
         build_variant_user_prompt(recipe_dict, variation, language=language),
         temperature=0.7,
-        max_tokens=2000,
+        max_tokens=4096,
     )
 
     try:
