@@ -174,6 +174,7 @@ async def admin_overview(
                 "full_name": u.full_name,
                 "plan": u.plan.value,
                 "is_active": u.is_active,
+                "unlimited_suggestions": getattr(u, "unlimited_suggestions", False),
                 "created_at": u.created_at.isoformat(),
                 "fridge_count": fridge_counts.get(u.id, 0),
                 "meals_count": meal_counts.get(u.id, 0),
@@ -215,4 +216,25 @@ async def admin_overview(
             }
             for s in recent_saves
         ],
+    }
+
+
+@router.post("/users/{user_id}/unlimited")
+async def toggle_unlimited(
+    user_id: str,
+    db: Db,
+    x_admin_code: Annotated[str | None, Header(alias=ADMIN_CODE_HEADER)] = None,
+):
+    _verify_admin_code(x_admin_code)
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    current = getattr(user, "unlimited_suggestions", False)
+    user.unlimited_suggestions = not current
+    await db.commit()
+    return {
+        "user_id": user_id,
+        "email": user.email,
+        "unlimited_suggestions": user.unlimited_suggestions,
     }

@@ -45,6 +45,7 @@ async def init_db() -> None:
         await conn.run_sync(Base.metadata.create_all)
         if engine.dialect.name == "sqlite":
             await conn.run_sync(_drop_verification_columns)
+        await conn.run_sync(_add_unlimited_suggestions_column)
 
 
 def _drop_legacy_stripe_schema(sync_conn) -> None:
@@ -83,3 +84,20 @@ def _drop_verification_columns(sync_conn) -> None:
     sync_conn.execute(text("ALTER TABLE users DROP COLUMN is_email_verified"))
     sync_conn.execute(text("ALTER TABLE users DROP COLUMN verification_code_hash"))
     sync_conn.execute(text("ALTER TABLE users DROP COLUMN verification_code_expires_at"))
+
+
+def _add_unlimited_suggestions_column(sync_conn) -> None:
+    """Add unlimited_suggestions column to users table if missing (idempotent)."""
+    from sqlalchemy import inspect, text
+
+    insp = inspect(sync_conn)
+    if "users" not in insp.get_table_names():
+        return
+    cols = {c["name"] for c in insp.get_columns("users")}
+    if "unlimited_suggestions" in cols:
+        return
+    dialect = sync_conn.dialect.name
+    if dialect == "sqlite":
+        sync_conn.execute(text("ALTER TABLE users ADD COLUMN unlimited_suggestions BOOLEAN NOT NULL DEFAULT 0"))
+    else:
+        sync_conn.execute(text("ALTER TABLE users ADD COLUMN unlimited_suggestions BOOLEAN NOT NULL DEFAULT FALSE"))

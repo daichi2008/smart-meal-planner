@@ -11,7 +11,7 @@ WEEKLY_DAILY_LIMIT = 20
 
 async def check_and_consume_quota(user: User) -> None:
     """Free users get 5 AI suggestions/day, weekly users 20/day, Pro is unlimited."""
-    if user.plan == Plan.PRO:
+    if user.plan == Plan.PRO or user.unlimited_suggestions:
         return
 
     limit = WEEKLY_DAILY_LIMIT if user.plan == Plan.WEEKLY else FREE_DAILY_LIMIT

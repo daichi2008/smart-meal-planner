@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import uuid4
 
-from sqlalchemy import DateTime, Enum as SAEnum, Float, String
+from sqlalchemy import Boolean, DateTime, Enum as SAEnum, Float, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -25,6 +25,7 @@ class User(Base):
     calorie_target: Mapped[float | None] = mapped_column(Float, nullable=True)
     dietary_preferences: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
+    unlimited_suggestions: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     fridge_items: Mapped[list["FridgeItem"]] = relationship(
