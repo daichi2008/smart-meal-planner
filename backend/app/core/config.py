@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     LLM_API_KEY: str = ""
     LLM_BASE_URL: str = "https://api.openai.com/v1"
-    LLM_MODEL: str = "gpt-4o-mini"
+    LLM_MODEL: str = "qwen/qwen3.6-27b"
     LLM_MAX_CACHE_AGE_HOURS: int = 24
 
     ADVCASH_ACCOUNT_EMAIL: str = ""
