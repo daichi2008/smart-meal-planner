@@ -170,6 +170,7 @@ async def admin_overview(
         },
         "users": [
             {
+                "id": u.id,
                 "email": u.email,
                 "full_name": u.full_name,
                 "plan": u.plan.value,
