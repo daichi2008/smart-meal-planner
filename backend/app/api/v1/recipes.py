@@ -20,6 +20,7 @@ from app.schemas.recipe import (
     SavedRecipeOut,
 )
 from app.services.recipes import suggest_recipes, generate_variant
+from app.services.llm import llm_service
 from app.services.quota import check_and_consume_quota
 
 logger = logging.getLogger(__name__)
@@ -119,6 +120,20 @@ async def variant(
 
     recipe = RecipeOut.model_validate(payload)
     return RecipeSuggestionResponse(recipes=[recipe], source=source)
+
+
+@router.get("/llm-test")
+async def llm_test(current_user: CurrentUser):
+    if not llm_service.is_configured:
+        return {"error": "LLM not configured", "model": llm_service.model, "base_url": llm_service.base_url}
+    try:
+        raw = await llm_service.complete(
+            "You are a helpful assistant. Return ONLY valid JSON.",
+            'Return a JSON object with key "message" and value "hello". No other text.',
+        )
+        return {"model": llm_service.model, "raw_response": raw, "is_json": raw.strip().startswith("{")}
+    except Exception as e:
+        return {"error": str(e), "model": llm_service.model}
 
 
 @router.post("/save", status_code=status.HTTP_201_CREATED, response_model=RecipeOut)
