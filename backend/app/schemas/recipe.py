@@ -33,6 +33,12 @@ class RecipeSuggestionResponse(BaseModel):
     source: str = "ai"
 
 
+class RecipeVariantRequest(BaseModel):
+    recipe: RecipeOut
+    variation: str = Field(..., max_length=500, description="Preset key or custom text")
+    language: str | None = Field(default=None, max_length=10)
+
+
 class SaveRecipeRequest(BaseModel):
     title: str
     summary: str | None = None

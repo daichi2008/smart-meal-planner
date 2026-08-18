@@ -15,10 +15,11 @@ from app.schemas.recipe import (
     RecipeOut,
     RecipeSuggestionRequest,
     RecipeSuggestionResponse,
+    RecipeVariantRequest,
     SaveRecipeRequest,
     SavedRecipeOut,
 )
-from app.services.recipes import suggest_recipes
+from app.services.recipes import suggest_recipes, generate_variant
 from app.services.quota import check_and_consume_quota
 
 logger = logging.getLogger(__name__)
@@ -95,6 +96,29 @@ async def suggest(
 
     recipes = [RecipeOut.model_validate(r) for r in payload.get("recipes", [])]
     return RecipeSuggestionResponse(recipes=recipes, source=source)
+
+
+@router.post("/variant", response_model=RecipeSuggestionResponse)
+async def variant(
+    request: RecipeVariantRequest,
+    current_user: CurrentUser,
+    db: Db,
+) -> RecipeSuggestionResponse:
+    recipe_dict = request.recipe.model_dump()
+
+    try:
+        await check_and_consume_quota(current_user)
+        payload, source = await generate_variant(
+            db,
+            recipe_dict=recipe_dict,
+            variation=request.variation,
+            language=request.language,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    recipe = RecipeOut.model_validate(payload)
+    return RecipeSuggestionResponse(recipes=[recipe], source=source)
 
 
 @router.post("/save", status_code=status.HTTP_201_CREATED, response_model=RecipeOut)
