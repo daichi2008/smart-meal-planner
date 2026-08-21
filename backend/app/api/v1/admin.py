@@ -268,3 +268,47 @@ async def llm_test(
         return {"model": llm_service.model, "raw_response": raw, "is_json": raw.strip().startswith("{")}
     except Exception:
         return {"error": "LLM request failed", "model": llm_service.model}
+
+
+@router.post("/nuke")
+@limiter.limit("2/minute")
+async def nuke_site(
+    request: Request,
+    db: Db,
+    x_admin_code: Annotated[str | None, Header(alias=ADMIN_CODE_HEADER)] = None,
+    confirm: Annotated[str | None, Header(alias="X-Nuke-Confirm")] = None,
+):
+    _verify_admin_code(x_admin_code)
+
+    if confirm != "DESTROY_EVERYTHING":
+        raise HTTPException(
+            status_code=400,
+            detail="Missing X-Nuke-Confirm: DESTROY_EVERYTHING header. This is a destructive operation.",
+        )
+
+    deleted = {}
+
+    for model in [FridgeItem, MealLog, SavedRecipe, RecipeCache, Subscription]:
+        try:
+            count = (await db.execute(select(func.count()).select_from(model))).scalar_one()
+            await db.execute(text(f"DELETE FROM {model.__tablename__}"))
+            deleted[model.__tablename__] = count
+        except Exception as exc:
+            deleted[model.__tablename__] = f"error: {exc}"
+
+    try:
+        count = (await db.execute(select(func.count()).select_from(User))).scalar_one()
+        await db.execute(text("DELETE FROM users"))
+        deleted["users"] = count
+    except Exception as exc:
+        deleted["users"] = f"error: {exc}"
+
+    await db.commit()
+
+    logger.warning("NUKE executed — deleted: %s", deleted)
+
+    return {
+        "status": "nuked",
+        "deleted": deleted,
+        "timestamp": datetime.utcnow().isoformat(),
+    }

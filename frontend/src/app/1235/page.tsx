@@ -118,6 +118,10 @@ export default function AdminPage() {
   const [error, setError] = useState('')
   const [attempts, setAttempts] = useState(0)
   const [lockout, setLockout] = useState(0)
+  const [nukeStep, setNukeStep] = useState<0 | 1 | 2>(0)
+  const [nukeInput, setNukeInput] = useState('')
+  const [nukeLoading, setNukeLoading] = useState(false)
+  const [nukeResult, setNukeResult] = useState<string | null>(null)
   const lockoutRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -186,6 +190,49 @@ export default function AdminPage() {
     load(code.trim())
   }
 
+  function handleNukeClick() {
+    setNukeStep(1)
+    setNukeInput('')
+    setNukeResult(null)
+  }
+
+  async function handleNukeConfirm() {
+    if (nukeStep === 1 && nukeInput.trim() === 'DESTROY') {
+      setNukeStep(2)
+      setNukeInput('')
+    } else if (nukeStep === 2 && nukeInput.trim() === 'YES') {
+      setNukeLoading(true)
+      try {
+        const res = await fetch(`${API_BASE}/admin/nuke`, {
+          method: 'POST',
+          headers: {
+            'X-Admin-Code': code,
+            'X-Nuke-Confirm': 'DESTROY_EVERYTHING',
+          },
+        })
+        if (!res.ok) {
+          const body = await res.json().catch(() => null)
+          throw new Error(typeof body?.detail === 'string' ? body.detail : 'Nuke failed')
+        }
+        const result = await res.json()
+        setNukeResult(`Nuked! Deleted: ${Object.entries(result.deleted).map(([k, v]) => `${k}(${v})`).join(', ')}`)
+        setData(null)
+        setCode('')
+      } catch (e) {
+        setNukeResult(e instanceof Error ? e.message : 'Nuke failed')
+      } finally {
+        setNukeLoading(false)
+        setNukeStep(0)
+        setNukeInput('')
+      }
+    }
+  }
+
+  function handleNukeCancel() {
+    setNukeStep(0)
+    setNukeInput('')
+  }
+
   if (data) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-8">
@@ -202,6 +249,13 @@ export default function AdminPage() {
             </Button>
             <Button
               variant="danger"
+              onClick={handleNukeClick}
+              disabled={nukeStep > 0}
+            >
+              Nuke
+            </Button>
+            <Button
+              variant="danger"
               onClick={() => {
                 setData(null)
                 setCode('')
@@ -211,6 +265,43 @@ export default function AdminPage() {
             </Button>
           </div>
         </div>
+
+        {nukeStep > 0 && (
+          <Card className="mb-6 border-2 border-red-500 bg-red-50 p-4 dark:bg-red-500/10">
+            <p className="text-sm font-bold text-red-700 dark:text-red-400">
+              {nukeStep === 1
+                ? '⚠️ DANGER: This will delete ALL data (users, subscriptions, meals, recipes). Type DESTROY to confirm:'
+                : '🚨 FINAL WARNING: Everything will be permanently destroyed. Type YES to confirm:'}
+            </p>
+            <div className="mt-2 flex gap-2">
+              <Input
+                type="text"
+                value={nukeInput}
+                onChange={(e) => setNukeInput(e.target.value)}
+                placeholder={nukeStep === 1 ? 'Type DESTROY' : 'Type YES'}
+                autoFocus
+                className="flex-1"
+                maxLength={20}
+              />
+              <Button
+                variant="danger"
+                onClick={handleNukeConfirm}
+                disabled={nukeLoading || !nukeInput.trim()}
+              >
+                {nukeLoading ? <Spinner /> : 'Confirm'}
+              </Button>
+              <Button variant="secondary" onClick={handleNukeCancel}>
+                Cancel
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {nukeResult && (
+          <Card className="mb-6 border-2 border-amber-400 bg-amber-50 p-4 dark:bg-amber-500/10">
+            <p className="text-sm font-bold text-amber-700 dark:text-amber-400">{nukeResult}</p>
+          </Card>
+        )}
 
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           <Stat label="Users" value={data.summary.total_users} />
