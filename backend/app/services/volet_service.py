@@ -1,6 +1,7 @@
 """Volet payment gateway service for processing subscriptions."""
 
 import hashlib
+import hmac
 import logging
 from typing import Any
 
@@ -86,4 +87,4 @@ def verify_webhook_payload(data: dict[str, Any]) -> bool:
         settings.VOLET_SECRET_KEY,
     )
     
-    return expected_signature == str(data["signature"])
+    return hmac.compare_digest(expected_signature, str(data["signature"]))

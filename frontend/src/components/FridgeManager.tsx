@@ -142,6 +142,7 @@ export function FridgeManager({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={t('fieldNamePlaceholder')}
+            maxLength={120}
           />
         </Field>
         <div className="grid grid-cols-2 gap-3">
@@ -163,6 +164,7 @@ export function FridgeManager({
               onChange={(e) => setUnit(e.target.value)}
               placeholder="kg / g / ml"
               aria-label={t('fieldUnit')}
+              maxLength={20}
             />
           </Field>
         </div>

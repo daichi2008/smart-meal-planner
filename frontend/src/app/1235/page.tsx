@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { API_BASE } from '@/lib/api'
 import { Badge, Button, Card, Input, Spinner } from '@/components/ui'
@@ -52,7 +52,8 @@ interface AdminOverview {
   recent_saves: ActivityRow[]
 }
 
-const STORAGE_KEY = 'admin_code'
+const MAX_ATTEMPTS = 5
+const LOCKOUT_SECONDS = 60
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -115,37 +116,70 @@ export default function AdminPage() {
   const [data, setData] = useState<AdminOverview | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
-  const load = useCallback(async (candidate: string) => {
-    setLoading(true)
-    setError('')
-    try {
-      const res = await fetch(`${API_BASE}/admin/overview`, {
-        headers: { 'X-Admin-Code': candidate },
-        cache: 'no-store',
-      })
-      if (!res.ok) {
-        if (res.status === 403) throw new Error('Incorrect code')
-        const body = await res.json().catch(() => null)
-        throw new Error(typeof body?.detail === 'string' ? body.detail : 'Request failed')
-      }
-      const json = (await res.json()) as AdminOverview
-      sessionStorage.setItem(STORAGE_KEY, candidate)
-      setData(json)
-    } catch (e) {
-      sessionStorage.removeItem(STORAGE_KEY)
-      setError(e instanceof Error ? e.message : 'Request failed')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const [attempts, setAttempts] = useState(0)
+  const [lockout, setLockout] = useState(0)
+  const lockoutRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    const saved = sessionStorage.getItem(STORAGE_KEY)
-    if (!saved) return
-    const timer = window.setTimeout(() => load(saved), 0)
-    return () => window.clearTimeout(timer)
-  }, [load])
+    if (lockout > 0) {
+      lockoutRef.current = setInterval(() => {
+        setLockout((prev) => {
+          if (prev <= 1) {
+            if (lockoutRef.current) clearInterval(lockoutRef.current)
+            setAttempts(0)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+      return () => {
+        if (lockoutRef.current) clearInterval(lockoutRef.current)
+      }
+    }
+  }, [lockout > 0])
+
+  const load = useCallback(
+    async (candidate: string) => {
+      if (lockout > 0) {
+        setError(`Locked out. Try again in ${lockout}s.`)
+        return
+      }
+
+      setLoading(true)
+      setError('')
+      try {
+        const res = await fetch(`${API_BASE}/admin/overview`, {
+          headers: { 'X-Admin-Code': candidate },
+          cache: 'no-store',
+        })
+        if (!res.ok) {
+          if (res.status === 429) {
+            setLockout(LOCKOUT_SECONDS)
+            throw new Error('Too many attempts. Locked for 60 seconds.')
+          }
+          if (res.status === 403) {
+            const newAttempts = attempts + 1
+            setAttempts(newAttempts)
+            if (newAttempts >= MAX_ATTEMPTS) {
+              setLockout(LOCKOUT_SECONDS)
+              throw new Error('Too many incorrect attempts. Locked for 60 seconds.')
+            }
+            throw new Error(`Incorrect code. ${MAX_ATTEMPTS - newAttempts} attempts remaining.`)
+          }
+          const body = await res.json().catch(() => null)
+          throw new Error(typeof body?.detail === 'string' ? body.detail : 'Request failed')
+        }
+        const json = (await res.json()) as AdminOverview
+        setAttempts(0)
+        setData(json)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Request failed')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [attempts, lockout],
+  )
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -163,13 +197,12 @@ export default function AdminPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => load(code || sessionStorage.getItem(STORAGE_KEY) || '')} disabled={loading}>
+            <Button variant="secondary" onClick={() => load(code)} disabled={loading}>
               {loading ? <Spinner /> : 'Refresh'}
             </Button>
             <Button
               variant="danger"
               onClick={() => {
-                sessionStorage.removeItem(STORAGE_KEY)
                 setData(null)
                 setCode('')
               }}
@@ -294,9 +327,16 @@ export default function AdminPage() {
             onChange={(e) => setCode(e.target.value)}
             placeholder="Access code"
             autoFocus
+            maxLength={64}
+            disabled={lockout > 0}
           />
+          {lockout > 0 && (
+            <p className="text-sm text-amber-600 dark:text-amber-400">
+              Locked out. Try again in {lockout}s.
+            </p>
+          )}
           {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-          <Button type="submit" className="w-full" disabled={loading || !code.trim()}>
+          <Button type="submit" className="w-full" disabled={loading || !code.trim() || lockout > 0}>
             {loading ? <Spinner className="mx-auto" /> : 'Unlock'}
           </Button>
         </form>

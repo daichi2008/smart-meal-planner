@@ -11,8 +11,10 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: CORS_ORIGINS
-        value: '*'
+        value: 'https://smart-meal-planner-seven.vercel.app'
       - key: SECRET_KEY
+        sync: false
+      - key: ADMIN_CODE
         sync: false
       - key: DATABASE_URL
         sync: false

@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import logging
 from typing import Any
 
@@ -97,4 +98,4 @@ def verify_status_payload(data: dict[str, Any]) -> bool:
         str(data["ac_merchant_currency"]),
         settings.ADVCASH_SCI_PASSWORD,
     )
-    return expected == str(data["ac_hash"])
+    return hmac.compare_digest(expected, str(data["ac_hash"]))

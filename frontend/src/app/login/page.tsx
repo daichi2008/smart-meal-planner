@@ -1,12 +1,15 @@
 'use client'
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { Button, Field, Input } from "@/components/ui";
+
+const MAX_ATTEMPTS = 5
+const LOCKOUT_SECONDS = 60
 
 export default function LoginPage() {
   const { login, user, loading } = useAuth()
@@ -16,6 +19,27 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [attempts, setAttempts] = useState(0)
+  const [lockout, setLockout] = useState(0)
+  const lockoutRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    if (lockout > 0) {
+      lockoutRef.current = setInterval(() => {
+        setLockout((prev) => {
+          if (prev <= 1) {
+            if (lockoutRef.current) clearInterval(lockoutRef.current)
+            setAttempts(0)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+      return () => {
+        if (lockoutRef.current) clearInterval(lockoutRef.current)
+      }
+    }
+  }, [lockout > 0])
 
   useEffect(() => {
     if (!loading && user) router.replace('/dashboard')
@@ -23,12 +47,23 @@ export default function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (lockout > 0) {
+      setError(`Locked out. Try again in ${lockout}s.`)
+      return
+    }
     setError(null)
     setSubmitting(true)
     try {
       await login(email, password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('loginError'))
+      const newAttempts = attempts + 1
+      setAttempts(newAttempts)
+      if (newAttempts >= MAX_ATTEMPTS) {
+        setLockout(LOCKOUT_SECONDS)
+        setError('Too many failed attempts. Locked for 60 seconds.')
+      } else {
+        setError(err instanceof Error ? err.message : t('loginError'))
+      }
       setSubmitting(false)
     }
   }
@@ -55,6 +90,8 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+              maxLength={254}
+              disabled={lockout > 0}
             />
           </Field>
           <Field label={t('loginPassword')}>
@@ -66,14 +103,22 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
+              maxLength={128}
+              disabled={lockout > 0}
             />
           </Field>
+
+          {lockout > 0 && (
+            <p className="rounded-xl bg-amber-50 px-3.5 py-2.5 text-sm text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+              Too many attempts. Try again in {lockout}s.
+            </p>
+          )}
 
           {error && (
             <p className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">{error}</p>
           )}
 
-          <Button type="submit" disabled={submitting} className="w-full py-3">
+          <Button type="submit" disabled={submitting || lockout > 0} className="w-full py-3">
             {submitting ? t('loginSubmitting') : t('loginSubmit')}
           </Button>
         </form>

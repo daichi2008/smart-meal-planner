@@ -4,8 +4,10 @@ import traceback
 from datetime import datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +29,8 @@ Db = Annotated[AsyncSession, Depends(get_db)]
 
 ADMIN_CODE_HEADER = "X-Admin-Code"
 
+limiter = Limiter(key_func=get_remote_address)
+
 
 def _verify_admin_code(x_admin_code: str | None) -> None:
     expected = settings.ADMIN_CODE
@@ -46,7 +50,9 @@ def _fmt_dt(value) -> str | None:
 
 
 @router.get("/overview", response_model=None)
+@limiter.limit("10/minute")
 async def admin_overview(
+    request: Request,
     db: Db,
     x_admin_code: Annotated[str | None, Header(alias=ADMIN_CODE_HEADER)] = None,
     debug: Annotated[int, Query()] = 0,
@@ -223,7 +229,9 @@ async def admin_overview(
 
 
 @router.post("/users/{user_id}/unlimited")
+@limiter.limit("10/minute")
 async def toggle_unlimited(
+    request: Request,
     user_id: str,
     db: Db,
     x_admin_code: Annotated[str | None, Header(alias=ADMIN_CODE_HEADER)] = None,
@@ -244,17 +252,19 @@ async def toggle_unlimited(
 
 
 @router.get("/llm-test")
+@limiter.limit("5/minute")
 async def llm_test(
+    request: Request,
     x_admin_code: Annotated[str | None, Header(alias=ADMIN_CODE_HEADER)] = None,
 ):
     _verify_admin_code(x_admin_code)
     if not llm_service.is_configured:
-        return {"error": "LLM not configured", "model": llm_service.model, "base_url": llm_service.base_url}
+        return {"error": "LLM not configured", "model": llm_service.model}
     try:
         raw = await llm_service.complete(
             "You are a helpful assistant. Return ONLY valid JSON.",
             'Return a JSON object with key "message" and value "hello". No other text.',
         )
         return {"model": llm_service.model, "raw_response": raw, "is_json": raw.strip().startswith("{")}
-    except Exception as e:
-        return {"error": str(e), "model": llm_service.model}
+    except Exception:
+        return {"error": "LLM request failed", "model": llm_service.model}

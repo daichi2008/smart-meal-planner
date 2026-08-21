@@ -1,4 +1,5 @@
 from functools import lru_cache
+import secrets
 from typing import Annotated
 
 from pydantic import field_validator
@@ -10,7 +11,7 @@ class Settings(BaseSettings):
 
     APP_NAME: str = "Smart Meal Planner"
     ENVIRONMENT: str = "development"
-    SECRET_KEY: str = "change-me"
+    SECRET_KEY: str = secrets.token_hex(32)
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
 
     DATABASE_URL: str = "sqlite+aiosqlite:///./mealplanner.db"
@@ -37,7 +38,7 @@ class Settings(BaseSettings):
     VOLET_WEEKLY_SUBSCRIPTION_DAYS: int = 7
     VOLET_MONTHLY_SUBSCRIPTION_DAYS: int = 30
 
-    ADMIN_CODE: str = "14122008"
+    ADMIN_CODE: str = secrets.token_hex(16)
 
     FRONTEND_URL: str = "http://localhost:3000"
     BACKEND_URL: str = "http://localhost:8000"
@@ -60,6 +61,10 @@ class Settings(BaseSettings):
         if self.is_development:
             return ["*"]
         return [o.strip() for o in self.FRONTEND_URL.split(",")]
+
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT.lower() in {"production", "prod"}
 
     @property
     def is_development(self) -> bool:

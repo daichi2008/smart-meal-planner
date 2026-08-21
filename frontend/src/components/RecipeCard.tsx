@@ -214,6 +214,7 @@ export function RecipeCard({
                 placeholder={t('customVariationPlaceholder')}
                 className="input flex-1 text-sm"
                 disabled={variantLoading}
+                maxLength={500}
               />
               <Button type="submit" disabled={variantLoading || !customInput.trim()} className="px-4 text-sm">
                 {t('customVariation')}

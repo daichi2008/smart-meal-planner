@@ -174,6 +174,7 @@ export function MealTracker() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={t('logTitlePlaceholder')}
+                maxLength={200}
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">

@@ -1,6 +1,8 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,9 +17,12 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 Db = Annotated[AsyncSession, Depends(get_db)]
 
+limiter = Limiter(key_func=get_remote_address)
+
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register(payload: UserRegister, db: Db) -> TokenResponse:
+@limiter.limit("3/minute")
+async def register(request: Request, payload: UserRegister, db: Db) -> TokenResponse:
     result = await db.execute(select(User).where(User.email == payload.email.lower()))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Email already registered")
@@ -34,7 +39,8 @@ async def register(payload: UserRegister, db: Db) -> TokenResponse:
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(payload: UserLogin, db: Db) -> TokenResponse:
+@limiter.limit("5/minute")
+async def login(request: Request, payload: UserLogin, db: Db) -> TokenResponse:
     result = await db.execute(select(User).where(User.email == payload.email.lower()))
     user = result.scalar_one_or_none()
     if not user or not verify_password(payload.password, user.hashed_password):

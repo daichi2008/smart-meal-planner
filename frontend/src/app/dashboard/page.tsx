@@ -148,6 +148,7 @@ function SettingsForm({ user, onSaved }: { user: User; onSaved: () => Promise<vo
             value={preferences}
             onChange={(e) => setPreferences(e.target.value)}
             placeholder={t('settingsPrefsPlaceholder')}
+            maxLength={500}
           />
         </Field>
         <div className="sm:col-span-2">

@@ -63,6 +63,7 @@ export default function RegisterPage() {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Ahmed Mohammed"
+              maxLength={100}
             />
           </Field>
           <Field label={t('registerEmail')}>
@@ -74,6 +75,7 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+              maxLength={254}
             />
           </Field>
           <Field label={t('registerPassword')} hint={t('registerPasswordHint')}>
@@ -85,6 +87,7 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
+              maxLength={128}
             />
           </Field>
 
